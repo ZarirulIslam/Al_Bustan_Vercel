@@ -1,0 +1,658 @@
+// Al Bustan Communities Limited — database schema
+//
+// PostgreSQL. Prisma abstracts the query layer, so nothing in
+// src/lib or src/app talks to SQL directly — only to Prisma Client.
+
+// Prisma 7 recommends the new "prisma-client" generator over
+// "prisma-client-js". Deliberately NOT using it here: its ESM output
+// (generated outside node_modules) currently has a documented module
+// resolution bug under Next.js 16 + Turbopack ("Cannot find module
+// '.prisma/client/default'"). prisma-client-js — still supported in
+// v7, just deprecated — avoids that entirely. Paired with the
+// `serverExternalPackages` entries in next.config.mjs and the driver
+// adapter in src/lib/prisma.ts, this is the combination that's
+// actually verified working for this stack. Revisit once Turbopack's
+// handling of the new generator's output stabilizes.
+generator client {
+  provider = "prisma-client-js"
+}
+
+// The connection URL is no longer set here — Prisma 7 removed
+// `datasource.url` from the schema file. It now lives in
+// prisma.config.ts (see `datasource.url` there), which the Prisma
+// CLI reads for `generate`/`db push`/etc. The provider name still
+// belongs here.
+datasource db {
+  provider = "postgresql"
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+
+  activityLogs ActivityLog[]
+}
+
+enum ProjectStatus {
+  ongoing
+  completed
+  upcoming
+}
+
+// Kept as one flexible model rather than separate tables for each
+// project type: almost every field (location, status, description,
+// features, gallery, map, etc.) is genuinely shared, and a single
+// admin form / public template covering both stays far easier to
+// maintain than parallel systems. `category` drives which
+// type-specific fields the admin form shows and how the detail page
+// labels them ("Plots" vs "Flats", plot sizes vs bedroom options).
+enum ProjectCategory {
+  land_plot
+  flat
+}
+
+model Project {
+  id               String          @id @default(cuid())
+  slug             String          @unique
+  name             String
+  status           ProjectStatus
+  category         ProjectCategory @default(land_plot)
+  location         String
+  shortDescription String
+  fullDescription  String
+  projectType      String
+  totalArea        String
+  unitInfo         String
+  timeline         String
+  features         String[] // native Postgres array — no JSON encode/decode needed
+  latitude         Float?
+  longitude        Float?
+  published        Boolean         @default(false)
+
+  // Shared across both categories
+  totalUnits       Int? // "Total Plots" or "Total Flats", labeled by category
+  availableUnits   Int? // "Available Plots" or "Available Flats"
+  sizesOffered     String? // e.g. "3, 5 & 10 Katha" or "1,200–2,400 sq ft"
+  pricingInfo      String? // free text — prices/instalments are rarely final, so this stays prose, not a fixed price field
+  nearbyFacilities String[] // e.g. nearby schools, hospitals, highways — separate from `features` (on-site amenities)
+  brochureUrl      String? // PDF
+  masterPlanUrl    String? // image
+  block            String? // e.g. "Block C" — which block/section of the development
+  facing           String? // e.g. "South-facing" — plot/unit orientation
+  frontRoadWidth   String? // e.g. "30 ft" — width of the road in front of the plot/unit
+
+  // Optional per-project SEO overrides — same fallback convention as
+  // BlogPost's seoTitle/metaDescription/ogImageUrl (each falls back
+  // to the corresponding content field when unset).
+  seoTitle        String?
+  metaDescription String?
+  ogImageUrl      String?
+  canonicalUrl    String? // falls back to the project's own public URL when unset
+  noIndex         Boolean @default(false)
+
+  // Curated separately from `published`: a project can be published
+  // without being featured, or featured in advance while still
+  // unpublished (it simply won't appear until published too). Managed
+  // from /admin/homepage, not from this project's own edit form — see
+  // src/lib/data/projects.ts (getFeaturedProjects) for how the
+  // homepage picks which projects to show.
+  featured Boolean @default(false)
+
+  // Flat-only (null/ignored for land_plot projects)
+  bedroomOptions String? // e.g. "3 & 4 bedroom units"
+
+  coverImageId String?         @unique
+  coverImage   ProjectImage?   @relation("CoverImage", fields: [coverImageId], references: [id])
+  gallery      ProjectImage[]  @relation("GalleryImages")
+  inventory    InventoryItem[]
+  paymentPlans PaymentPlan[]
+  faqs         ProjectFaq[]
+  testimonials Testimonial[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([published])
+  @@index([category])
+  @@index([featured])
+}
+
+enum InventoryStatus {
+  available
+  reserved
+  sold
+}
+
+// One row per individually sellable plot (land_plot projects) or
+// flat/unit (flat projects) within a project — lets the admin track
+// exact availability instead of only the project-level
+// totalUnits/availableUnits counts. `code` holds the plot number or
+// unit number depending on the parent project's category; the
+// category-specific fields below are nullable and only shown/edited
+// for the matching category, mirroring how Project itself already
+// mixes shared and category-specific fields.
+model InventoryItem {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  code   String // "Plot Number" (land_plot) or "Unit Number" (flat)
+  size   String? // e.g. "5 Katha" or "1,450 sq ft"
+  facing String? // e.g. "South-facing"
+  price  String? // free text — prices aren't final, same convention as Project.pricingInfo
+  status InventoryStatus @default(available)
+
+  // Land/Plot-only
+  block     String?
+  roadWidth String?
+
+  // Flat/Apartment-only
+  floor     String?
+  bedrooms  String?
+  bathrooms String?
+  parking   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+}
+
+// A project can offer several payment plans (e.g. "Cash Payment",
+// "3-Year Installment Plan"). Every money/schedule field is free text
+// — same convention as Project.pricingInfo and InventoryItem.price —
+// since amounts and schedules are rarely final and vary in format.
+// `enabled` lets the admin hide a plan (e.g. temporarily suspended)
+// without deleting it. Managed from the project's own edit page
+// (/admin/projects/[id]/edit), shown on that project's public page.
+model PaymentPlan {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name            String // e.g. "Standard Installment Plan"
+  bookingAmount   String?
+  downPayment     String?
+  installmentInfo String? // e.g. "36 monthly installments of ..."
+  description     String? // any additional notes about this plan
+
+  enabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+// Per-project FAQ, distinct from the site-wide FAQ on the Contact
+// page (src/app/(site)/contact/page.tsx, currently static). `order`
+// controls display sequence, edited via the admin move-up/move-down
+// actions — same pattern as HeroSlide.order.
+model ProjectFaq {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  question  String
+  answer    String
+  order     Int     @default(0)
+  published Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([published])
+}
+
+model ProjectImage {
+  id  String @id @default(cuid())
+  url String
+  alt String
+
+  coverOfProject   Project? @relation("CoverImage")
+  galleryProject   Project? @relation("GalleryImages", fields: [galleryProjectId], references: [id], onDelete: Cascade)
+  galleryProjectId String?
+
+  @@index([galleryProjectId])
+}
+
+// Customer quotes shown on the homepage. `order` follows the same
+// move-up/move-down admin pattern as HeroSlide.order/ProjectFaq.order
+// — not a `@@index` since it's always fetched in full (a homepage
+// section, never paginated/filtered by it).
+model Testimonial {
+  id           String  @id @default(cuid())
+  customerName String
+  photoUrl     String?
+  designation  String?
+  text         String
+  order        Int     @default(0)
+  published    Boolean @default(true)
+
+  // Optional — a testimonial doesn't have to be about a specific
+  // project. Real relation (not the soft projectId/projectName
+  // pattern ContactInquiry uses) since testimonials are ordinary
+  // admin-managed content, not a historical record of an external
+  // submission; onDelete: SetNull so deleting a project just clears
+  // the reference instead of taking the testimonial with it.
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([published])
+  @@index([projectId])
+}
+
+model BlogCategory {
+  id    String     @id @default(cuid())
+  name  String     @unique
+  slug  String     @unique
+  posts BlogPost[]
+}
+
+model BlogPost {
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  title            String
+  excerpt          String
+  // Markdown — rendered with react-markdown on the public post page.
+  // Existing plain-text content (paragraphs separated by a blank
+  // line) is already valid Markdown and renders unchanged, so this
+  // didn't require migrating any existing post.
+  content          String
+  author           String
+  featuredImageUrl String
+  featuredImageAlt String
+  published        Boolean  @default(false)
+  publishedAt      DateTime @default(now())
+
+  // Optional per-post SEO overrides — all fall back to the
+  // corresponding content field (title/excerpt/featuredImageUrl) when
+  // unset, same fallback convention as WebsiteSettings.seoTitle for
+  // the site as a whole.
+  seoTitle        String?
+  metaDescription String?
+  ogImageUrl      String?
+  canonicalUrl    String? // falls back to the post's own public URL when unset
+  noIndex         Boolean @default(false)
+
+  categoryId String
+  category   BlogCategory @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published])
+  @@index([categoryId])
+}
+
+// Lead pipeline stages, in order. "in_progress" was renamed/folded
+// into "follow_up" (same meaning — an admin is actively working the
+// lead) and "converted" was added to distinguish a won lead from one
+// that's simply closed out (lost/not interested).
+enum InquiryStatus {
+  new
+  contacted
+  follow_up
+  converted
+  closed
+}
+
+// What the visitor was asking about, selected on the public form.
+enum InquiryType {
+  general
+  buying
+  site_visit
+  pricing
+  other
+}
+
+// How the lead reached us. Public submissions default to "website";
+// the other values let an admin log a lead that came in some other
+// way (e.g. a phone call) using the same record shape.
+enum LeadSource {
+  website
+  referral
+  phone_call
+  walk_in
+  social_media
+  advertisement
+  other
+}
+
+// What kind of property the lead is interested in. Deliberately its
+// own enum rather than reusing ProjectCategory — a lead can be
+// interested in a property type before (or without) picking a
+// specific project, and "commercial"/"other" have no project
+// equivalent today.
+enum PropertyType {
+  land_plot
+  flat
+  commercial
+  other
+}
+
+// projectId/projectName are a soft reference, not a foreign key —
+// an inquiry is a historical record of what someone submitted, and
+// should stay intact (with the project name it referred to at the
+// time) even if that project is later edited or deleted.
+model ContactInquiry {
+  id          String        @id @default(cuid())
+  name        String
+  phone       String
+  email       String
+  subject     String
+  inquiryType InquiryType   @default(general)
+  message     String
+  projectId   String?
+  projectName String?
+  status      InquiryStatus @default(new)
+
+  // Lead-management fields — set/edited by admins, not by the public
+  // form.
+  leadSource    LeadSource    @default(website)
+  propertyType  PropertyType?
+  budget        String? // free text, same convention as Project.pricingInfo — budgets are rarely a single fixed number
+  customerNotes String? // internal admin notes about this lead, distinct from the customer's own `message`
+  followUpDate  DateTime? // date only, but stored as DateTime (Prisma has no bare Date type)
+
+  // Real relation, unlike projectId/projectName above — sales
+  // employees are managed inside this same app, not an external
+  // system, so there's no "historical record" reason to soft-couple
+  // it. onDelete: SetNull matters less in practice since employees
+  // are only ever deactivated (not deleted) through the admin UI, but
+  // keeps a stray DB-level delete from being blocked or cascading
+  // into inquiry data.
+  assignedToId String?
+  assignedTo   SalesEmployee? @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([status])
+  @@index([leadSource])
+  @@index([projectId])
+  @@index([followUpDate])
+  @@index([createdAt])
+  @@index([assignedToId])
+}
+
+// A separate concept from AdminUser: sales employees are assignable
+// leads owners, not CMS logins — there's no password/auth here, and
+// deliberately so. "active"/"inactive" (not delete) is how an admin
+// retires someone, so past leads keep a meaningful assignee on record
+// instead of the reference quietly vanishing.
+model SalesEmployee {
+  id          String   @id @default(cuid())
+  name        String
+  phone       String
+  email       String   @unique
+  designation String
+  active      Boolean  @default(true)
+
+  assignedInquiries ContactInquiry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([active])
+}
+
+// Singleton — always read/written at a fixed id ("singleton"), since
+// there is exactly one settings record for the whole site. Managed
+// from /admin/settings.
+model WebsiteSettings {
+  id             String   @id @default("singleton")
+  companyName    String
+  logoUrl        String?
+  phone          String
+  whatsapp       String
+  email          String
+  address        String
+  latitude       Float?
+  longitude      Float?
+  businessHours  String
+  messengerUrl   String?
+  facebookUrl    String?
+  instagramUrl   String?
+  linkedinUrl    String?
+  youtubeUrl     String?
+  seoTitle       String
+  seoDescription String
+
+  // Footer's own copy — previously fixed placeholder text in
+  // Footer.tsx regardless of what was entered here.
+  companyDescription String @default("Placeholder company description. Replace with Al Bustan Communities Limited's real positioning statement once provided.")
+  footerLegalText    String @default("Placeholder footer — legal links to be added.")
+
+  updatedAt DateTime @updatedAt
+}
+
+// Standalone images the admin adds directly to the public Gallery
+// page, separate from project photos (which the Gallery page also
+// shows, pulled live from published projects — see
+// src/lib/data/gallery.ts). Kept as its own simple model rather than
+// reusing ProjectImage, since these aren't attached to a project.
+model GalleryImage {
+  id        String   @id @default(cuid())
+  url       String
+  alt       String
+  caption   String?
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([published])
+}
+
+// Background images for the homepage hero slider. The hero's
+// headline, description and CTAs stay static in src/app/(site)/page.tsx —
+// only these images are admin-managed. `order` controls slide
+// sequence and is edited via the admin move-up/move-down actions
+// (see src/app/admin/(dashboard)/hero/actions.ts).
+model HeroSlide {
+  id        String   @id @default(cuid())
+  url       String
+  alt       String
+  order     Int      @default(0)
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([published])
+}
+
+// Singleton (same pattern as WebsiteSettings) holding the
+// admin-editable parts of the homepage beyond the hero slider and
+// featured projects: the "Where our projects stand" stat tiles, and
+// per-section show/hide toggles. Managed from /admin/homepage, read
+// by src/app/(site)/page.tsx via src/lib/data/homepageSettings.ts.
+model HomepageSettings {
+  id String @id @default("singleton")
+
+  // Hero overlay text and the two CTA buttons. The hero background
+  // images stay managed separately (HeroSlide, /admin/hero) — this is
+  // only the text/button layer drawn on top of the slider. The text
+  // block (eyebrow/headline/description) has its own show/hide toggle
+  // independent of the buttons, so an admin can run an image-only
+  // hero with just the buttons, or vice versa. There are exactly two
+  // fixed button slots (primary/secondary), matching the homepage's
+  // fixed two-button layout — not an open-ended list.
+  heroTextEnabled            Boolean @default(true)
+  heroEyebrow                String  @default("Al Bustan Communities Limited")
+  heroHeadline               String  @default("Planned places to live, grow and invest")
+  heroDescription            String  @default("We are a Dhaka-based real estate developer creating well-planned land, residential plots and apartments, built on clear information, careful planning and long-term value.")
+  heroPrimaryButtonEnabled   Boolean @default(true)
+  heroPrimaryButtonLabel     String  @default("Explore Our Projects")
+  heroPrimaryButtonUrl       String  @default("/projects")
+  heroSecondaryButtonEnabled Boolean @default(true)
+  heroSecondaryButtonLabel   String  @default("Talk to Our Team")
+  heroSecondaryButtonUrl     String  @default("/contact")
+
+  // "Where our projects stand" tiles. Counts always come live from
+  // real published projects per status (see src/app/(site)/page.tsx)
+  // — only the label and visibility of each tile is admin-editable,
+  // so a shown number can never go stale or be hand-typed wrong.
+  statsSectionEnabled  Boolean @default(true)
+  ongoingStatLabel     String  @default("Ongoing")
+  ongoingStatEnabled   Boolean @default(true)
+  completedStatLabel   String  @default("Completed")
+  completedStatEnabled Boolean @default(true)
+  upcomingStatLabel    String  @default("Upcoming")
+  upcomingStatEnabled  Boolean @default(true)
+
+  // Show/hide toggles for the other optional homepage sections. The
+  // closing "Have a question" contact block is not included here — it
+  // stays permanently on, since together with the navbar/footer it's
+  // the site's core contact path.
+  introSectionEnabled            Boolean @default(true)
+  whatWeDevelopSectionEnabled    Boolean @default(true)
+  featuredProjectsSectionEnabled Boolean @default(true)
+  valuePropsSectionEnabled       Boolean @default(true)
+  testimonialsSectionEnabled     Boolean @default(true)
+  ctaSectionEnabled              Boolean @default(true)
+  blogSectionEnabled             Boolean @default(true)
+
+  // Company introduction section's own text/photo — previously fixed
+  // in src/app/(site)/page.tsx; introSectionEnabled above only ever
+  // controlled its visibility, not its content.
+  introHeading  String @default("A developer that plans for how families really live")
+  introBody     String @default("Al Bustan Communities Limited is a real estate development company based in Banani, Dhaka. We believe a good address is more than a piece of land or a set of walls. It is access, safety, community and space to grow. Every project we take on begins with a clear plan and honest information, so buyers can decide with confidence.")
+  introImageUrl String @default("https://images.unsplash.com/photo-1758193431351-68538bf55ec3?auto=format&fit=crop&w=1400&q=80")
+
+  updatedAt DateTime @updatedAt
+}
+
+// Shared "which repeatable list is this row part of" discriminator —
+// one generic model (ContentItem, below) backs several different
+// icon-card lists across the homepage and About page, rather than a
+// near-identical Prisma model per list.
+enum ContentSection {
+  homepage_develop
+  homepage_value_prop
+  about_what_we_do
+  about_mission_points
+  about_core_values
+  about_approach_steps
+}
+
+enum ContentTone {
+  garden
+  sky
+  brass
+}
+
+// A single reusable "icon + title + description" row. Which fields a
+// given section actually displays varies (e.g. about_mission_points
+// only ever renders `title`, as a plain bullet point; icon/tone are
+// simply unused for that section) — see each section's render code
+// in src/app/(site)/page.tsx and about/page.tsx for exactly which
+// fields it reads.
+model ContentItem {
+  id          String         @id @default(cuid())
+  section     ContentSection
+  order       Int            @default(0)
+  published   Boolean        @default(true)
+  icon        String         @default("home")
+  tone        ContentTone    @default(garden)
+  title       String
+  description String         @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([section, order])
+}
+
+// Site-wide FAQ shown on the Contact page — distinct from ProjectFaq
+// (which is scoped to one project's own page). Same shape/admin
+// pattern as ProjectFaq, just not tied to a project.
+model SiteFaq {
+  id        String  @id @default(cuid())
+  question  String
+  answer    String
+  order     Int     @default(0)
+  published Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, order])
+}
+
+// About page's singleton text/photo content — the repeatable lists
+// (whatWeDo, coreValues, missionPoints, approachSteps) live in
+// ContentItem instead; this model is only the page's fixed prose
+// blocks and two photos.
+model AboutPageSettings {
+  id String @id @default("singleton")
+
+  heroEyebrow    String @default("About Us")
+  heroHeading    String @default("Building better places to live and invest")
+  heroParagraph  String @default("Al Bustan Communities Limited is a real estate development company based in Banani, Dhaka. We plan and develop land, residential plots and apartments with a focus on careful planning, transparent information and long-term value.")
+  heroImageUrl   String @default("https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2400&q=80")
+
+  overviewParagraph String @default("Al Bustan Communities Limited was founded to bring clarity and careful planning to real estate in Bangladesh. We are a new company, and we intend to earn trust the way it is earned in this industry: by giving buyers clear information, planning each development around how people actually live, and staying in touch after the sale. Our portfolio will grow across land, plots and apartments. Our first project, Al Bustan Purbachal City, is underway in Rupganj, Narayanganj.")
+  overviewImageUrl String @default("https://images.unsplash.com/photo-1768230130990-6b4fe57778ce?auto=format&fit=crop&w=1400&q=80")
+
+  visionParagraph String @default("To be a trusted real estate developer known for well-planned places, honest communication and lasting value for the families and investors we serve.")
+
+  portfolioParagraph String @default("Our first project is Al Bustan Purbachal City, an integrated community in Rupganj, Narayanganj.")
+
+  ctaHeading String @default("Want to know more about our work?")
+
+  updatedAt DateTime @updatedAt
+}
+
+// Admin-managed URL redirects, enforced at request time in proxy.ts
+// (not via next.config's static `redirects()`, which can't change
+// without a rebuild+redeploy). "permanent"/"temporary" map to actual
+// 301/302 HTTP status codes — named this way rather than by status
+// code since that's the terminology an SEO-focused admin expects.
+enum RedirectKind {
+  permanent
+  temporary
+}
+
+model Redirect {
+  id        String       @id @default(cuid())
+  fromPath  String       @unique // e.g. "/old-page" — always site-relative, checked against the request pathname
+  toPath    String // where to send visitors — a site-relative path or a full external URL
+  kind      RedirectKind @default(permanent)
+  enabled   Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @default(now()) @updatedAt
+
+  @@index([enabled])
+}
+
+// A lightweight audit trail, not an exhaustive one — logged from the
+// consequential admin actions (create/update/delete/publish/
+// unpublish) across every resource, not literally every read. Kept
+// intentionally simple: one flat table, no RBAC/role coupling (the
+// admin CMS has a single implicit admin role by design). adminEmail
+// is denormalized so an entry stays readable even if the AdminUser
+// who made it is later deleted (adminUserId just goes null).
+model ActivityLog {
+  id          String     @id @default(cuid())
+  adminUserId String?
+  adminUser   AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+  adminEmail  String
+  action      String // "created" | "updated" | "deleted" | "published" | "unpublished"
+  resource    String // e.g. "Project", "InventoryItem", "ContactInquiry", "WebsiteSettings"
+  resourceId  String?
+  description String // human-readable summary shown in the admin Activity Log list
+  createdAt   DateTime   @default(now())
+
+  @@index([resource])
+  @@index([action])
+  @@index([adminUserId])
+  @@index([adminEmail])
+  @@index([createdAt])
+}

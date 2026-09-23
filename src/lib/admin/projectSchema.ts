@@ -1,0 +1,46 @@
+import { z } from "zod";
+
+export const projectFormSchema = z.object({
+  name: z.string().min(2, "Name is required."),
+  slug: z
+    .string()
+    .min(2, "Slug is required.")
+    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens only."),
+  status: z.enum(["ongoing", "completed", "upcoming"], {
+    errorMap: () => ({ message: "Choose a status." }),
+  }),
+  category: z.enum(["land_plot", "flat"], {
+    errorMap: () => ({ message: "Choose a project category." }),
+  }),
+  location: z.string().min(1, "Location is required."),
+  shortDescription: z.string().min(1, "Short description is required."),
+  fullDescription: z.string().min(1, "Full description is required."),
+  projectType: z.string().min(1, "Project type is required."),
+  totalArea: z.string().min(1, "Total area is required."),
+  unitInfo: z.string().min(1, "Unit/plot information is required."),
+  timeline: z.string().min(1, "Timeline is required."),
+  features: z.string().optional(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+  totalUnits: z.string().optional(),
+  availableUnits: z.string().optional(),
+  sizesOffered: z.string().optional(),
+  pricingInfo: z.string().optional(),
+  nearbyFacilities: z.string().optional(),
+  bedroomOptions: z.string().optional(),
+  block: z.string().optional(),
+  facing: z.string().optional(),
+  frontRoadWidth: z.string().optional(),
+  published: z.string().optional(),
+  seoTitle: z.string().max(70, "Keep it under 70 characters.").optional(),
+  metaDescription: z.string().max(160, "Keep it under 160 characters.").optional(),
+  canonicalUrl: z.string().max(500).optional(),
+  noIndex: z.string().optional(),
+});
+
+export type ProjectFormValues = z.infer<typeof projectFormSchema>;
+
+export interface ProjectFormState {
+  error?: string;
+  fieldErrors?: Partial<Record<keyof ProjectFormValues, string>>;
+}
