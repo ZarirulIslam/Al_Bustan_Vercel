@@ -10,6 +10,7 @@ import { GalleryImageUploadField } from "@/components/admin/GalleryImageUploadFi
 import { BrochureUploadField } from "@/components/admin/BrochureUploadField";
 import type { Project, ProjectStatus, ProjectCategory } from "@/lib/types";
 import type { ProjectFormState } from "@/lib/admin/projectSchema";
+import { useActionFeedback } from "@/components/admin/AdminToaster";
 
 function slugify(value: string) {
   return value
@@ -63,6 +64,7 @@ export function ProjectForm({
   submitLabel: string;
 }) {
   const [state, formAction] = useActionState(action, {});
+  useActionFeedback(state, "Project saved.");
   const [slugTouched, setSlugTouched] = useState(Boolean(project));
   const [name, setName] = useState(project?.name ?? "");
   const [slug, setSlug] = useState(project?.slug ?? "");

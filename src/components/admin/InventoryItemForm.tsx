@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { createInventoryItem, updateInventoryItem } from "@/app/admin/(dashboard)/projects/actions";
 import type { InventoryItem, ProjectCategory } from "@/lib/types";
+import { useActionFeedback } from "@/components/admin/AdminToaster";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -57,6 +58,7 @@ export function InventoryItemForm({
   const isFlat = category === "flat";
   const action = item ? updateInventoryItem.bind(null, item.id) : createInventoryItem.bind(null, projectId);
   const [state, formAction] = useActionState(action, {});
+  useActionFeedback(state, item ? `Unit "${item.code}" saved.` : "Unit added.");
   const router = useRouter();
 
   useEffect(() => {

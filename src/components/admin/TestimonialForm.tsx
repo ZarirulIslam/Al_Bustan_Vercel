@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { CoverImageUploadField } from "@/components/admin/CoverImageUploadField";
 import type { Testimonial } from "@/lib/types";
 import type { TestimonialFormState } from "@/lib/admin/testimonialSchema";
+import { useActionFeedback } from "@/components/admin/AdminToaster";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -53,6 +54,7 @@ export function TestimonialForm({
   submitLabel: string;
 }) {
   const [state, formAction] = useActionState(action, {});
+  useActionFeedback(state, "Testimonial saved.");
 
   return (
     <form action={formAction} className="space-y-8">

@@ -1,16 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSectionAccess } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activityLog";
+import { redirectWithFlash } from "@/lib/admin/flash";
 import { redirectFormSchema, type RedirectFormState } from "@/lib/admin/redirectSchema";
 
+// Also enforces this admin's access to the section (see
+// src/lib/admin/permissions.ts), not just that they're signed in.
 async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-  if (!session) throw new Error("Not authenticated.");
+  await requireSectionAccess("redirects");
 }
 
 // /admin and /api are never checked by proxy.ts's redirect lookup
@@ -77,7 +77,7 @@ export async function createRedirect(
   });
 
   revalidatePath("/admin/redirects");
-  redirect("/admin/redirects");
+  return redirectWithFlash("/admin/redirects", `Redirect from "${rule.fromPath}" created.`);
 }
 
 export async function updateRedirect(
@@ -130,7 +130,7 @@ export async function updateRedirect(
   });
 
   revalidatePath("/admin/redirects");
-  redirect("/admin/redirects");
+  return redirectWithFlash("/admin/redirects", `Redirect from "${data.fromPath}" saved.`);
 }
 
 export async function deleteRedirect(id: string) {

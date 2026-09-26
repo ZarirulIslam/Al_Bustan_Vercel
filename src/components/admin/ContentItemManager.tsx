@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ContentIcon } from "@/components/ui/ContentIcon";
@@ -11,6 +11,7 @@ import {
   toggleContentItemPublished,
 } from "@/lib/admin/contentItemActions";
 import type { ContentItem, ContentSection } from "@/lib/types";
+import { useAdminAction } from "@/components/admin/AdminToaster";
 
 export function ContentItemManager({
   section,
@@ -21,7 +22,7 @@ export function ContentItemManager({
   items: ContentItem[];
   addLabel?: string;
 }) {
-  const [isPending, startTransition] = useTransition();
+  const { run, isPending } = useAdminAction();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -58,7 +59,7 @@ export function ContentItemManager({
                   <button
                     type="button"
                     disabled={isPending}
-                    onClick={() => startTransition(() => toggleContentItemPublished(item.id, section, !item.published))}
+                    onClick={() => run(() => toggleContentItemPublished(item.id, section, !item.published), item.published ? "Item unpublished." : "Item published.")}
                     className={
                       item.published
                         ? "inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-garden-100 px-2.5 py-1 text-xs font-medium text-garden-700"
@@ -75,7 +76,7 @@ export function ContentItemManager({
                   <button
                     type="button"
                     disabled={isPending || index === 0}
-                    onClick={() => startTransition(() => moveContentItem(item.id, section, "up"))}
+                    onClick={() => run(() => moveContentItem(item.id, section, "up"))}
                     className="rounded-lg border border-limestone-300 px-3 py-1 text-xs font-medium text-ink-soft transition-colors duration-150 hover:border-garden-300 hover:text-garden-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-limestone-300 disabled:hover:text-ink-soft"
                   >
                     ↑ Move up
@@ -83,7 +84,7 @@ export function ContentItemManager({
                   <button
                     type="button"
                     disabled={isPending || index === items.length - 1}
-                    onClick={() => startTransition(() => moveContentItem(item.id, section, "down"))}
+                    onClick={() => run(() => moveContentItem(item.id, section, "down"))}
                     className="rounded-lg border border-limestone-300 px-3 py-1 text-xs font-medium text-ink-soft transition-colors duration-150 hover:border-garden-300 hover:text-garden-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-limestone-300 disabled:hover:text-ink-soft"
                   >
                     ↓ Move down
@@ -107,7 +108,7 @@ export function ContentItemManager({
                     disabled={isPending}
                     onClick={() => {
                       if (confirm(`Delete "${item.title}"? This can't be undone.`)) {
-                        startTransition(() => deleteContentItem(item.id, section));
+                        run(() => deleteContentItem(item.id, section), "Item deleted.");
                       }
                     }}
                   >

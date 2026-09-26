@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { CoverImageUploadField } from "@/components/admin/CoverImageUploadField";
 import type { HomepageSettings } from "@/lib/types";
 import type { HomepageSettingsFormState } from "@/lib/admin/homepageSettingsSchema";
+import { useActionFeedback } from "@/components/admin/AdminToaster";
 
 function SubmitButton({ disabledExtra }: { disabledExtra: boolean }) {
   const { pending } = useFormStatus();
@@ -54,15 +55,11 @@ export function HomepageSettingsForm({
   settings: HomepageSettings;
 }) {
   const [state, formAction] = useActionState(action, {});
+  useActionFeedback(state, "Homepage settings saved.");
   const [introImageUploading, setIntroImageUploading] = useState(false);
 
   return (
     <form action={formAction} className="space-y-10">
-      {state.success && (
-        <p className="rounded border border-garden-300 bg-garden-50 px-4 py-3 text-sm text-garden-700">
-          Homepage settings saved.
-        </p>
-      )}
       {state.error && (
         <p className="rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
           {state.error}

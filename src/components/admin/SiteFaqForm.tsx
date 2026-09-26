@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { createSiteFaq, updateSiteFaq } from "@/app/admin/(dashboard)/faqs/actions";
 import type { SiteFaq } from "@/lib/types";
+import { useActionFeedback } from "@/components/admin/AdminToaster";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -52,6 +53,7 @@ export function SiteFaqForm({
 }) {
   const action = faq ? updateSiteFaq.bind(null, faq.id) : createSiteFaq;
   const [state, formAction] = useActionState(action, {});
+  useActionFeedback(state, faq ? "FAQ saved." : "FAQ added.");
   const router = useRouter();
 
   useEffect(() => {

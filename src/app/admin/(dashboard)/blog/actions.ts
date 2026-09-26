@@ -1,12 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSectionAccess } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { deleteImage } from "@/lib/storage";
 import { logActivity } from "@/lib/activityLog";
+import { redirectWithFlash } from "@/lib/admin/flash";
 import { blogFormSchema, type BlogFormState } from "@/lib/admin/blogSchema";
 
 // As with the project actions, the featured image is uploaded
@@ -18,9 +17,10 @@ function isPlausibleImageUrl(value: string): boolean {
   return value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/uploads/");
 }
 
+// Also enforces this admin's access to the section (see
+// src/lib/admin/permissions.ts), not just that they're signed in.
 async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-  if (!session) throw new Error("Not authenticated.");
+  await requireSectionAccess("blog");
 }
 
 function slugifyCategory(name: string) {
@@ -122,7 +122,7 @@ export async function createPost(
 
   revalidateBlogPages();
   revalidatePath("/admin/blog");
-  redirect("/admin/blog");
+  return redirectWithFlash("/admin/blog", `Blog post "${post.title}" created.`);
 }
 
 export async function updatePost(
@@ -199,7 +199,7 @@ export async function updatePost(
 
   revalidateBlogPages();
   revalidatePath("/admin/blog");
-  redirect("/admin/blog");
+  return redirectWithFlash("/admin/blog", `Blog post "${data.title}" saved.`);
 }
 
 export async function deletePost(id: string) {

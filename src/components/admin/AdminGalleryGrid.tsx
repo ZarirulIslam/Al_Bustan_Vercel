@@ -1,14 +1,14 @@
 "use client";
 
-import { useTransition } from "react";
 import Image from "next/image";
 import type { GalleryImage } from "@prisma/client";
 import { deleteGalleryImage, toggleGalleryImagePublished } from "@/app/admin/(dashboard)/gallery/actions";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useAdminAction } from "@/components/admin/AdminToaster";
 
 export function AdminGalleryGrid({ images }: { images: GalleryImage[] }) {
-  const [isPending, startTransition] = useTransition();
+  const { run, isPending } = useAdminAction();
 
   if (images.length === 0) {
     return (
@@ -42,7 +42,7 @@ export function AdminGalleryGrid({ images }: { images: GalleryImage[] }) {
                 type="button"
                 disabled={isPending}
                 onClick={() =>
-                  startTransition(() => toggleGalleryImagePublished(image.id, !image.published))
+                  run(() => toggleGalleryImagePublished(image.id, !image.published), image.published ? "Photo unpublished." : "Photo published.")
                 }
                 className={
                   image.published
@@ -62,7 +62,7 @@ export function AdminGalleryGrid({ images }: { images: GalleryImage[] }) {
                 disabled={isPending}
                 onClick={() => {
                   if (confirm("Delete this photo? This can't be undone.")) {
-                    startTransition(() => deleteGalleryImage(image.id));
+                    run(() => deleteGalleryImage(image.id), "Photo deleted.");
                   }
                 }}
               >

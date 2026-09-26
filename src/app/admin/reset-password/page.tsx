@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
-import { ResetPasswordForm } from "@/components/admin/PasswordResetForms";
+import { ResetPasswordForm } from "@/components/admin/AdminAuthForms";
 import { resetPassword } from "@/app/admin/reset-password/actions";
 import { defaultSiteSettings } from "@/lib/constants";
 

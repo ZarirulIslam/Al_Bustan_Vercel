@@ -1,18 +1,18 @@
 "use client";
 
-import { useTransition } from "react";
 import Image from "next/image";
 import type { Project } from "@/lib/types";
 import { ProjectStatusBadge } from "@/components/ui/ProjectStatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { toggleFeaturedProject } from "@/app/admin/(dashboard)/homepage/actions";
+import { useAdminAction } from "@/components/admin/AdminToaster";
 
 // Kept separate from the Projects table on purpose — Featured is a
 // homepage-curation decision, distinct from a project's own
 // Published state (a project can be featured while still
 // unpublished; it just won't show on the homepage until published).
 export function FeaturedProjectsManager({ projects }: { projects: Project[] }) {
-  const [isPending, startTransition] = useTransition();
+  const { run, isPending } = useAdminAction();
 
   if (projects.length === 0) {
     return (
@@ -63,7 +63,7 @@ export function FeaturedProjectsManager({ projects }: { projects: Project[] }) {
               type="button"
               disabled={isPending}
               onClick={() =>
-                startTransition(() => toggleFeaturedProject(project.id, !project.featured))
+                run(() => toggleFeaturedProject(project.id, !project.featured), project.featured ? "Removed from featured projects." : "Added to featured projects.")
               }
               className={
                 project.featured

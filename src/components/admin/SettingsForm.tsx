@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { CoverImageUploadField } from "@/components/admin/CoverImageUploadField";
 import type { SiteSettings } from "@/lib/types";
 import type { SettingsFormState } from "@/lib/admin/settingsSchema";
+import { useActionFeedback } from "@/components/admin/AdminToaster";
 
 function SubmitButton({ disabledExtra }: { disabledExtra: boolean }) {
   const { pending } = useFormStatus();
@@ -50,15 +51,11 @@ export function SettingsForm({
   settings: SiteSettings;
 }) {
   const [state, formAction] = useActionState(action, {});
+  useActionFeedback(state, "Website settings saved.");
   const [logoUploading, setLogoUploading] = useState(false);
 
   return (
     <form action={formAction} className="space-y-10">
-      {state.success && (
-        <p className="rounded border border-garden-300 bg-garden-50 px-4 py-3 text-sm text-garden-700">
-          Settings saved.
-        </p>
-      )}
       {state.error && (
         <p className="rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
           {state.error}

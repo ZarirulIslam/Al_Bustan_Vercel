@@ -133,3 +133,129 @@ export function ResetPasswordForm({ action, token }: { action: Action; token: st
     </>
   );
 }
+
+export function AcceptInviteForm({
+  action,
+  token,
+  email,
+  defaultName,
+}: {
+  action: Action;
+  token: string;
+  email: string;
+  defaultName: string;
+}) {
+  const router = useRouter();
+  const [state, formAction] = useActionState(action, {});
+
+  useEffect(() => {
+    if (state.success) router.replace("/admin/login?notice=invite-accepted");
+  }, [state.success, router]);
+
+  return (
+    <>
+      <p className="mt-2 text-sm text-ink-soft">
+        Set up your account for <span className="font-medium text-ink">{email}</span>. You&apos;ll sign in
+        with this email and the password you choose here.
+      </p>
+      <form action={formAction} className="mt-6 space-y-4">
+        <input type="hidden" name="token" value={token} />
+        <div>
+          <label htmlFor="name" className="text-sm text-ink">
+            Your Name
+          </label>
+          <input
+            id="name"
+            name="name"
+            required
+            maxLength={80}
+            defaultValue={defaultName}
+            autoComplete="name"
+            className={inputClass}
+          />
+          {state.fieldErrors?.name && <p className="mt-1 text-xs text-red-700">{state.fieldErrors.name}</p>}
+        </div>
+        <div>
+          <label htmlFor="newPassword" className="text-sm text-ink">
+            Password
+          </label>
+          <input
+            id="newPassword"
+            name="newPassword"
+            type="password"
+            required
+            minLength={8}
+            maxLength={72}
+            autoComplete="new-password"
+            className={inputClass}
+          />
+          {state.fieldErrors?.newPassword && (
+            <p className="mt-1 text-xs text-red-700">{state.fieldErrors.newPassword}</p>
+          )}
+        </div>
+        <div>
+          <label htmlFor="confirmPassword" className="text-sm text-ink">
+            Confirm Password
+          </label>
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            required
+            autoComplete="new-password"
+            className={inputClass}
+          />
+          {state.fieldErrors?.confirmPassword && (
+            <p className="mt-1 text-xs text-red-700">{state.fieldErrors.confirmPassword}</p>
+          )}
+        </div>
+
+        {state.error && <p className="text-sm text-red-700">{state.error}</p>}
+
+        <SubmitButton idle="Create My Account" pending="Saving…" />
+      </form>
+    </>
+  );
+}
+
+export function ConfirmEmailForm({
+  action,
+  token,
+  newEmail,
+}: {
+  action: Action;
+  token: string;
+  newEmail: string;
+}) {
+  const [state, formAction] = useActionState(action, {});
+
+  if (state.success) {
+    return (
+      <>
+        <p className="mt-6 rounded border border-garden-300 bg-garden-50 px-4 py-3 text-sm text-garden-700">
+          Email confirmed. Sign in with <span className="font-medium">{state.message}</span> from now on.
+        </p>
+        <p className="mt-6 text-center text-sm">
+          <Link href="/admin" className="font-medium text-garden-700 hover:underline">
+            Go to the dashboard
+          </Link>
+        </p>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <p className="mt-2 text-sm text-ink-soft">
+        Confirm <span className="font-medium text-ink">{newEmail}</span> as the new sign-in email for your
+        admin account.
+      </p>
+      <form action={formAction} className="mt-6 space-y-4">
+        <input type="hidden" name="token" value={token} />
+        {state.error && <p className="text-sm text-red-700">{state.error}</p>}
+        <SubmitButton idle="Confirm Email Address" pending="Confirming…" />
+      </form>
+      <BackToLogin />
+    </>
+  );
+}

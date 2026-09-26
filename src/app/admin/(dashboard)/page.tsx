@@ -8,6 +8,8 @@ import { getBlogCounts } from "@/lib/admin/blog";
 import { getInquiryCounts } from "@/lib/admin/inquiries";
 import { getSalesEmployeeCounts } from "@/lib/admin/salesTeam";
 import { getSiteSettings } from "@/lib/data/settings";
+import { requireCurrentAdmin } from "@/lib/adminAuth";
+import { hasSectionAccess, sectionForPath, sectionLabel, type AdminSection } from "@/lib/admin/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -100,17 +102,52 @@ function getGreeting() {
   return "Good evening";
 }
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ denied?: string }>;
+}) {
+  const { denied } = await searchParams;
+  const admin = await requireCurrentAdmin();
+  const can = (section: AdminSection) => hasSectionAccess(admin, section);
+
+  // Every block below is limited to the sections this admin was
+  // granted, and nothing is even queried for the others.
   const [projectCounts, blogCounts, inquiryCounts, salesEmployeeCounts, settings] = await Promise.all([
-    getProjectCounts(),
-    getBlogCounts(),
-    getInquiryCounts(),
-    getSalesEmployeeCounts(),
+    can("projects") ? getProjectCounts() : null,
+    can("blog") ? getBlogCounts() : null,
+    can("inquiries") ? getInquiryCounts() : null,
+    can("salesTeam") ? getSalesEmployeeCounts() : null,
     getSiteSettings(),
   ]);
 
+  const heroStats = [
+    projectCounts && { label: "Total Projects", value: projectCounts.total, icon: "projects" as const },
+    inquiryCounts && { label: "Total Leads", value: inquiryCounts.total, icon: "leads" as const },
+    blogCounts && { label: "Total Articles", value: blogCounts.total, icon: "blog" as const },
+    salesEmployeeCounts && { label: "Sales Team", value: salesEmployeeCounts.active, icon: "team" as const },
+  ].filter((stat) => !!stat);
+
+  const visibleQuickLinks = quickLinks.filter((link) => {
+    const section = link.external ? null : sectionForPath(link.href);
+    return !section || can(section);
+  });
+
+  const deniedMessage =
+    denied === "users"
+      ? "Only a Super Admin can manage admin accounts."
+      : denied
+        ? `You don't have access to ${sectionLabel(denied)}. Ask a Super Admin if you need it.`
+        : null;
+
   return (
     <div>
+      {deniedMessage && (
+        <p className="mb-6 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {deniedMessage}
+        </p>
+      )}
+
       {/* Welcome hero — the same dark deep-green glass-card language as
           the public site's "Why Choose Al Bustan" panel, so the admin
           and the public site read as one system rather than two. */}
@@ -124,22 +161,22 @@ export default async function AdminDashboardPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button href="/admin/projects/new" variant="accent">
-              Add Project
-            </Button>
-            <Button href="/admin/blog/new" variant="secondary">
-              Add Blog Post
-            </Button>
+            {projectCounts && (
+              <Button href="/admin/projects/new" variant="accent">
+                Add Project
+              </Button>
+            )}
+            {blogCounts && (
+              <Button href="/admin/blog/new" variant="secondary">
+                Add Blog Post
+              </Button>
+            )}
           </div>
         </div>
 
+        {heroStats.length > 0 && (
         <div className="relative z-10 mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {[
-            { label: "Total Projects", value: projectCounts.total, icon: "projects" as const },
-            { label: "Total Leads", value: inquiryCounts.total, icon: "leads" as const },
-            { label: "Total Articles", value: blogCounts.total, icon: "blog" as const },
-            { label: "Sales Team", value: salesEmployeeCounts.active, icon: "team" as const },
-          ].map((stat) => (
+          {heroStats.map((stat) => (
             <div key={stat.label} className="rounded-xl border border-white/10 bg-white/5 p-4">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brass/20 text-brass-light">
                 <HeroStatIcon icon={stat.icon} />
@@ -149,11 +186,14 @@ export default async function AdminDashboardPage() {
             </div>
           ))}
         </div>
+        )}
       </section>
 
       {/* Project mix + lead pipeline — built entirely from the real
           counts above, not illustrative/placeholder chart data. */}
+      {(projectCounts || inquiryCounts) && (
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {projectCounts && (
         <div className="rounded-2xl border border-limestone-300 bg-white p-6 shadow-card">
           <div className="flex items-center justify-between">
             <h2 className="text-lg">Project Mix</h2>
@@ -173,7 +213,9 @@ export default async function AdminDashboardPage() {
             />
           </div>
         </div>
+        )}
 
+        {inquiryCounts && (
         <div className="rounded-2xl border border-limestone-300 bg-white p-6 shadow-card">
           <div className="flex items-center justify-between">
             <h2 className="text-lg">Lead Pipeline</h2>
@@ -193,8 +235,11 @@ export default async function AdminDashboardPage() {
             />
           </div>
         </div>
+        )}
       </div>
+      )}
 
+      {projectCounts && (
       <div className="mt-10">
         <SectionHeader title="Projects" manageHref="/admin/projects" />
         <div className="mt-4">
@@ -211,6 +256,9 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
+      )}
+
+      {blogCounts && (
       <div className="mt-10">
         <SectionHeader title="Blog" manageHref="/admin/blog" />
         <div className="mt-4">
@@ -224,6 +272,9 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
+      )}
+
+      {inquiryCounts && (
       <div className="mt-10">
         <SectionHeader title="Leads & Inquiries" manageHref="/admin/inquiries" />
         <div className="mt-4">
@@ -249,6 +300,9 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
+      )}
+
+      {salesEmployeeCounts && (
       <div className="mt-10">
         <SectionHeader title="Sales Team" manageHref="/admin/sales-team" />
         <div className="mt-4">
@@ -262,10 +316,12 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
+      )}
+
       <div className="mt-10 rounded-2xl border border-limestone-300 bg-white p-6 shadow-card">
         <h2 className="text-lg">Quick Links</h2>
         <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-          {quickLinks.map((link) => (
+          {visibleQuickLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import type { HeroSlide } from "@prisma/client";
 import {
@@ -12,6 +12,7 @@ import {
 import { uploadImageClientSide, ClientUploadError } from "@/lib/uploadClient";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useAdminAction } from "@/components/admin/AdminToaster";
 
 function HeroSlideCard({
   slide,
@@ -22,7 +23,7 @@ function HeroSlideCard({
   index: number;
   total: number;
 }) {
-  const [isPending, startTransition] = useTransition();
+  const { run, isPending } = useAdminAction();
   const [replacing, setReplacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,9 +39,7 @@ function HeroSlideCard({
     setReplacing(true);
     try {
       const url = await uploadImageClientSide(file, "hero");
-      startTransition(() => {
-        replaceHeroSlide(slide.id, url);
-      });
+      run(() => replaceHeroSlide(slide.id, url), "Slide image replaced.");
     } catch (err) {
       setError(err instanceof ClientUploadError ? err.message : "Upload failed.");
     } finally {
@@ -73,7 +72,7 @@ function HeroSlideCard({
             type="button"
             disabled={busy}
             onClick={() =>
-              startTransition(() => toggleHeroSlidePublished(slide.id, !slide.published))
+              run(() => toggleHeroSlidePublished(slide.id, !slide.published), slide.published ? "Slide unpublished." : "Slide published.")
             }
             className={
               slide.published
@@ -93,7 +92,7 @@ function HeroSlideCard({
             disabled={busy}
             onClick={() => {
               if (confirm("Delete this slide? This can't be undone.")) {
-                startTransition(() => deleteHeroSlide(slide.id));
+                run(() => deleteHeroSlide(slide.id), "Slide deleted.");
               }
             }}
           >
@@ -105,7 +104,7 @@ function HeroSlideCard({
           <button
             type="button"
             disabled={busy || index === 0}
-            onClick={() => startTransition(() => moveHeroSlide(slide.id, "up"))}
+            onClick={() => run(() => moveHeroSlide(slide.id, "up"))}
             className="flex-1 rounded-lg border border-limestone-300 py-1 text-xs font-medium text-ink-soft transition-colors duration-150 hover:border-garden-300 hover:text-garden-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-limestone-300 disabled:hover:text-ink-soft"
           >
             ↑ Move up
@@ -113,7 +112,7 @@ function HeroSlideCard({
           <button
             type="button"
             disabled={busy || index === total - 1}
-            onClick={() => startTransition(() => moveHeroSlide(slide.id, "down"))}
+            onClick={() => run(() => moveHeroSlide(slide.id, "down"))}
             className="flex-1 rounded-lg border border-limestone-300 py-1 text-xs font-medium text-ink-soft transition-colors duration-150 hover:border-garden-300 hover:text-garden-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-limestone-300 disabled:hover:text-ink-soft"
           >
             ↓ Move down

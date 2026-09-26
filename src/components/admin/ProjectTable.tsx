@@ -1,15 +1,15 @@
 "use client";
 
-import { useTransition } from "react";
 import Image from "next/image";
 import type { Project } from "@/lib/types";
 import { ProjectStatusBadge } from "@/components/ui/ProjectStatusBadge";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { deleteProject, togglePublished } from "@/app/admin/(dashboard)/projects/actions";
+import { useAdminAction } from "@/components/admin/AdminToaster";
 
 export function ProjectTable({ projects }: { projects: Project[] }) {
-  const [isPending, startTransition] = useTransition();
+  const { run, isPending } = useAdminAction();
 
   if (projects.length === 0) {
     return (
@@ -63,7 +63,7 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
                   type="button"
                   disabled={isPending}
                   onClick={() =>
-                    startTransition(() => togglePublished(project.id, !project.published))
+                    run(() => togglePublished(project.id, !project.published), project.published ? "Project unpublished." : "Project published.")
                   }
                   className={
                     project.published
@@ -92,7 +92,7 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
                     disabled={isPending}
                     onClick={() => {
                       if (confirm(`Delete "${project.name}"? This can't be undone.`)) {
-                        startTransition(() => deleteProject(project.id));
+                        run(() => deleteProject(project.id), "Project deleted.");
                       }
                     }}
                   >

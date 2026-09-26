@@ -1,10 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
 import type { Redirect } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { deleteRedirect, toggleRedirectEnabled } from "@/app/admin/(dashboard)/redirects/actions";
+import { useAdminAction } from "@/components/admin/AdminToaster";
 
 const kindLabels: Record<Redirect["kind"], string> = {
   permanent: "301 Permanent",
@@ -12,7 +12,7 @@ const kindLabels: Record<Redirect["kind"], string> = {
 };
 
 export function RedirectTable({ redirects }: { redirects: Redirect[] }) {
-  const [isPending, startTransition] = useTransition();
+  const { run, isPending } = useAdminAction();
 
   if (redirects.length === 0) {
     return (
@@ -51,7 +51,7 @@ export function RedirectTable({ redirects }: { redirects: Redirect[] }) {
                 <button
                   type="button"
                   disabled={isPending}
-                  onClick={() => startTransition(() => toggleRedirectEnabled(r.id, !r.enabled))}
+                  onClick={() => run(() => toggleRedirectEnabled(r.id, !r.enabled), r.enabled ? "Redirect disabled." : "Redirect enabled.")}
                   className={
                     r.enabled
                       ? "inline-flex items-center gap-1.5 rounded-full bg-garden-100 px-2.5 py-1 text-xs font-medium text-garden-700"
@@ -74,7 +74,7 @@ export function RedirectTable({ redirects }: { redirects: Redirect[] }) {
                     disabled={isPending}
                     onClick={() => {
                       if (confirm(`Delete the redirect from "${r.fromPath}"? This can't be undone.`)) {
-                        startTransition(() => deleteRedirect(r.id));
+                        run(() => deleteRedirect(r.id), "Redirect deleted.");
                       }
                     }}
                   >

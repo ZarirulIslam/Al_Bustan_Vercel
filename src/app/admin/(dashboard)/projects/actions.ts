@@ -1,12 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSectionAccess } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { deleteImage } from "@/lib/storage";
 import { logActivity } from "@/lib/activityLog";
+import { redirectWithFlash } from "@/lib/admin/flash";
 import {
   projectFormSchema,
   type ProjectFormState,
@@ -34,9 +33,10 @@ import type { InventoryStatus } from "@/lib/types";
 // which is what keeps this reliable on Vercel's ~4.5MB Serverless
 // Function request-body ceiling.
 
+// Also enforces this admin's access to the section (see
+// src/lib/admin/permissions.ts), not just that they're signed in.
 async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-  if (!session) throw new Error("Not authenticated.");
+  await requireSectionAccess("projects");
 }
 
 function parseFeatures(raw: string | undefined): string[] {
@@ -154,7 +154,7 @@ export async function createProject(
 
   revalidatePublicProjectPages();
   revalidatePath("/admin/projects");
-  redirect("/admin/projects");
+  return redirectWithFlash("/admin/projects", `Project "${project.name}" created.`);
 }
 
 export async function updateProject(
@@ -295,7 +295,7 @@ export async function updateProject(
 
   revalidatePublicProjectPages();
   revalidatePath("/admin/projects");
-  redirect("/admin/projects");
+  return redirectWithFlash("/admin/projects", `Project "${data.name}" saved.`);
 }
 
 export async function deleteProject(id: string) {

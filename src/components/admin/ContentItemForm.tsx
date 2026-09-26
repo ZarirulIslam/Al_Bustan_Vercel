@@ -8,6 +8,7 @@ import { ContentIcon } from "@/components/ui/ContentIcon";
 import { createContentItem, updateContentItem } from "@/lib/admin/contentItemActions";
 import { CONTENT_ICON_OPTIONS } from "@/lib/constants";
 import type { ContentItem, ContentSection, ContentTone } from "@/lib/types";
+import { useActionFeedback } from "@/components/admin/AdminToaster";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -69,6 +70,7 @@ export function ContentItemForm({
     ? updateContentItem.bind(null, item.id, section)
     : createContentItem.bind(null, section);
   const [state, formAction] = useActionState(action, {});
+  useActionFeedback(state, item ? `"${item.title}" saved.` : "Item added.");
   const [icon, setIcon] = useState(item?.icon ?? "home");
   const router = useRouter();
 

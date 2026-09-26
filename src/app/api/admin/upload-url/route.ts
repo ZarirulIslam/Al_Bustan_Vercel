@@ -25,7 +25,7 @@ import { randomUUID } from "crypto";
 //      to our platform's request-body limit.
 //   4. Only the resulting public URL (a short string) is later
 //      submitted with the rest of the admin form.
-const ALLOWED_SUBDIRS = ["projects", "blog", "settings", "gallery", "brochures", "hero", "testimonials"] as const;
+const ALLOWED_SUBDIRS = ["projects", "blog", "settings", "gallery", "brochures", "hero", "testimonials", "avatars"] as const;
 type AllowedSubdir = (typeof ALLOWED_SUBDIRS)[number];
 
 function isAllowedSubdir(value: unknown): value is AllowedSubdir {

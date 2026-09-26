@@ -1,10 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
 import Image from "next/image";
 import type { Testimonial } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useAdminAction } from "@/components/admin/AdminToaster";
 import {
   deleteTestimonial,
   toggleTestimonialPublished,
@@ -29,7 +29,7 @@ function TestimonialRow({
   index: number;
   total: number;
 }) {
-  const [isPending, startTransition] = useTransition();
+  const { run, isPending } = useAdminAction();
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-limestone-300 bg-white p-5 shadow-card transition-shadow duration-300 ease-estate hover:shadow-card-hover sm:flex-row">
@@ -47,7 +47,7 @@ function TestimonialRow({
           <button
             type="button"
             disabled={isPending || index === 0}
-            onClick={() => startTransition(() => moveTestimonial(testimonial.id, "up"))}
+            onClick={() => run(() => moveTestimonial(testimonial.id, "up"))}
             className="rounded-lg border border-limestone-300 px-2 py-1 text-xs font-medium text-ink-soft transition-colors duration-150 hover:border-garden-300 hover:text-garden-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             ↑
@@ -55,7 +55,7 @@ function TestimonialRow({
           <button
             type="button"
             disabled={isPending || index === total - 1}
-            onClick={() => startTransition(() => moveTestimonial(testimonial.id, "down"))}
+            onClick={() => run(() => moveTestimonial(testimonial.id, "down"))}
             className="rounded-lg border border-limestone-300 px-2 py-1 text-xs font-medium text-ink-soft transition-colors duration-150 hover:border-garden-300 hover:text-garden-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             ↓
@@ -78,7 +78,7 @@ function TestimonialRow({
             type="button"
             disabled={isPending}
             onClick={() =>
-              startTransition(() => toggleTestimonialPublished(testimonial.id, !testimonial.published))
+              run(() => toggleTestimonialPublished(testimonial.id, !testimonial.published), testimonial.published ? "Testimonial unpublished." : "Testimonial published.")
             }
             className={
               testimonial.published
@@ -106,7 +106,7 @@ function TestimonialRow({
             disabled={isPending}
             onClick={() => {
               if (confirm(`Delete the testimonial from "${testimonial.customerName}"? This can't be undone.`)) {
-                startTransition(() => deleteTestimonial(testimonial.id));
+                run(() => deleteTestimonial(testimonial.id), "Testimonial deleted.");
               }
             }}
           >

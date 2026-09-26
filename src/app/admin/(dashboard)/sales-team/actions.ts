@@ -1,16 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSectionAccess } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activityLog";
+import { redirectWithFlash } from "@/lib/admin/flash";
 import { salesEmployeeFormSchema, type SalesEmployeeFormState } from "@/lib/admin/salesTeamSchema";
 
+// Also enforces this admin's access to the section (see
+// src/lib/admin/permissions.ts), not just that they're signed in.
 async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-  if (!session) throw new Error("Not authenticated.");
+  await requireSectionAccess("salesTeam");
 }
 
 function revalidateSalesTeamPages() {
@@ -62,7 +62,7 @@ export async function createSalesEmployee(
   });
 
   revalidateSalesTeamPages();
-  redirect("/admin/sales-team");
+  return redirectWithFlash("/admin/sales-team", `Sales employee "${employee.name}" added.`);
 }
 
 export async function updateSalesEmployee(
@@ -115,7 +115,7 @@ export async function updateSalesEmployee(
   });
 
   revalidateSalesTeamPages();
-  redirect("/admin/sales-team");
+  return redirectWithFlash("/admin/sales-team", `Sales employee "${data.name}" saved.`);
 }
 
 export async function toggleSalesEmployeeActive(id: string, active: boolean) {

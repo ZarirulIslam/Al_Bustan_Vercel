@@ -8,6 +8,7 @@ import { CoverImageUploadField } from "@/components/admin/CoverImageUploadField"
 import { MarkdownEditor } from "@/components/admin/MarkdownEditor";
 import type { BlogPost } from "@/lib/types";
 import type { BlogFormState } from "@/lib/admin/blogSchema";
+import { useActionFeedback } from "@/components/admin/AdminToaster";
 
 function slugify(value: string) {
   return value
@@ -68,6 +69,7 @@ export function BlogForm({
   submitLabel: string;
 }) {
   const [state, formAction] = useActionState(action, {});
+  useActionFeedback(state, "Blog post saved.");
   const [slugTouched, setSlugTouched] = useState(Boolean(post));
   const [title, setTitle] = useState(post?.title ?? "");
   const [slug, setSlug] = useState(post?.slug ?? "");

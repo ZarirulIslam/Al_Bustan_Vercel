@@ -1,17 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSectionAccess } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { deleteImage } from "@/lib/storage";
 import { logActivity } from "@/lib/activityLog";
+import { redirectWithFlash } from "@/lib/admin/flash";
 import { testimonialFormSchema, type TestimonialFormState } from "@/lib/admin/testimonialSchema";
 
+// Also enforces this admin's access to the section (see
+// src/lib/admin/permissions.ts), not just that they're signed in.
 async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-  if (!session) throw new Error("Not authenticated.");
+  await requireSectionAccess("testimonials");
 }
 
 // Photo is optional here (unlike blog's featured image), so this is
@@ -71,7 +71,7 @@ export async function createTestimonial(
   });
 
   revalidateTestimonialPages();
-  redirect("/admin/testimonials");
+  return redirectWithFlash("/admin/testimonials", `Testimonial from "${testimonial.customerName}" added.`);
 }
 
 export async function updateTestimonial(
@@ -125,7 +125,7 @@ export async function updateTestimonial(
   });
 
   revalidateTestimonialPages();
-  redirect("/admin/testimonials");
+  return redirectWithFlash("/admin/testimonials", `Testimonial from "${data.customerName}" saved.`);
 }
 
 export async function deleteTestimonial(id: string) {

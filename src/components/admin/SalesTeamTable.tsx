@@ -1,13 +1,13 @@
 "use client";
 
-import { useTransition } from "react";
 import type { SalesEmployee } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { toggleSalesEmployeeActive } from "@/app/admin/(dashboard)/sales-team/actions";
+import { useAdminAction } from "@/components/admin/AdminToaster";
 
 export function SalesTeamTable({ employees }: { employees: SalesEmployee[] }) {
-  const [isPending, startTransition] = useTransition();
+  const { run, isPending } = useAdminAction();
 
   if (employees.length === 0) {
     return (
@@ -47,7 +47,7 @@ export function SalesTeamTable({ employees }: { employees: SalesEmployee[] }) {
                   type="button"
                   disabled={isPending}
                   onClick={() =>
-                    startTransition(() => toggleSalesEmployeeActive(employee.id, !employee.active))
+                    run(() => toggleSalesEmployeeActive(employee.id, !employee.active), employee.active ? "Sales employee deactivated." : "Sales employee activated.")
                   }
                   className={
                     employee.active

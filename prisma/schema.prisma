@@ -26,25 +26,78 @@ datasource db {
   provider = "postgresql"
 }
 
+// Dashboard accounts. Two access levels (see src/lib/adminAuth.ts):
+//  - super_admin: everything, plus managing other admin accounts
+//    (/admin/users)
+//  - admin: only the dashboard sections a super admin has granted
+//    them (`permissions`), and no account management
+// There's no public sign-up: a super admin invites new admins by
+// email, and accepting the invite (setting a password from the
+// emailed link) is also what verifies their address.
 model AdminUser {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String    @id @default(cuid())
+  email        String    @unique
   passwordHash String
   name         String?
-  createdAt    DateTime @default(now())
+  // Profile picture (uploaded to the "avatars" storage folder).
+  avatarUrl    String?
+  role         AdminRole @default(admin)
+  // Dashboard sections a plain admin may use (keys from
+  // src/lib/admin/permissions.ts). Ignored for super_admin, who
+  // always has everything.
+  permissions  String[]  @default([])
+  // Deactivated accounts can't sign in, and their existing sessions
+  // stop working on the next request (checked in src/lib/auth.ts).
+  isActive     Boolean   @default(true)
+  // Null until the admin has proven they control `email` — i.e. an
+  // invite that hasn't been accepted yet.
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
 
   // Bumped on every password change/reset. Each session JWT carries
   // the value it was issued with (see src/lib/auth.ts), so bumping it
   // signs out every existing session — including a stolen one.
   sessionVersion Int @default(0)
 
-  // Forgot-password flow (src/lib/admin/account.ts). Only a SHA-256
-  // hash of the emailed token is stored, never the token itself, and
-  // both fields are cleared as soon as it's used.
+  // UNUSED — superseded by AdminToken. Kept only so this schema can be
+  // pushed while the previous deploy (which still reads them) is live;
+  // safe to delete in a later `db push` once the new code is deployed.
   passwordResetTokenHash String?   @unique
   passwordResetExpiresAt DateTime?
 
   activityLogs ActivityLog[]
+  tokens       AdminToken[]
+}
+
+enum AdminRole {
+  super_admin
+  admin
+}
+
+// Single-use links emailed to an admin (password reset, invitation,
+// email-change confirmation). Only a SHA-256 hash of the token is
+// stored — the raw value only ever exists in the email — and a row is
+// deleted as soon as it's used. See src/lib/admin/tokens.ts.
+model AdminToken {
+  id          String         @id @default(cuid())
+  adminUserId String
+  adminUser   AdminUser      @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  type        AdminTokenType
+  tokenHash   String         @unique
+  // Only for email_change: the address being confirmed.
+  newEmail    String?
+  expiresAt   DateTime
+  createdAt   DateTime       @default(now())
+
+  @@index([adminUserId, type])
+}
+
+enum AdminTokenType {
+  password_reset
+  invite
+  email_change
 }
 
 enum ProjectStatus {

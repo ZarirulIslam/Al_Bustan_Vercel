@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InventoryItemForm } from "@/components/admin/InventoryItemForm";
 import { deleteInventoryItem, updateInventoryItemStatus } from "@/app/admin/(dashboard)/projects/actions";
 import type { InventoryItem, InventoryStatus, ProjectCategory } from "@/lib/types";
+import { useAdminAction } from "@/components/admin/AdminToaster";
 
 const selectClass =
   "rounded-lg border border-limestone-300 bg-white px-2.5 py-1.5 text-sm text-ink outline-none transition-colors focus:border-garden-500";
@@ -19,7 +20,7 @@ export function InventoryManager({
   category: ProjectCategory;
   items: InventoryItem[];
 }) {
-  const [isPending, startTransition] = useTransition();
+  const { run, isPending } = useAdminAction();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -126,9 +127,7 @@ export function InventoryManager({
                           defaultValue={item.status}
                           disabled={isPending}
                           onChange={(e) =>
-                            startTransition(() =>
-                              updateInventoryItemStatus(item.id, e.target.value as InventoryStatus)
-                            )
+                            run(() => updateInventoryItemStatus(item.id, e.target.value as InventoryStatus), "Unit status updated.")
                           }
                           className={selectClass}
                         >
@@ -157,7 +156,7 @@ export function InventoryManager({
                             disabled={isPending}
                             onClick={() => {
                               if (confirm(`Delete ${unitLabelLower} "${item.code}"? This can't be undone.`)) {
-                                startTransition(() => deleteInventoryItem(item.id));
+                                run(() => deleteInventoryItem(item.id), "Unit deleted.");
                               }
                             }}
                           >

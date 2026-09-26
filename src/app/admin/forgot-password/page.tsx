@@ -1,5 +1,5 @@
 import { Container } from "@/components/ui/Container";
-import { ForgotPasswordForm } from "@/components/admin/PasswordResetForms";
+import { ForgotPasswordForm } from "@/components/admin/AdminAuthForms";
 import { requestPasswordReset } from "@/app/admin/forgot-password/actions";
 import { defaultSiteSettings } from "@/lib/constants";
 

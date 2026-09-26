@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PaymentPlanForm } from "@/components/admin/PaymentPlanForm";
 import { deletePaymentPlan, togglePaymentPlanEnabled } from "@/app/admin/(dashboard)/projects/actions";
 import type { PaymentPlan } from "@/lib/types";
+import { useAdminAction } from "@/components/admin/AdminToaster";
 
 export function PaymentPlanManager({ projectId, plans }: { projectId: string; plans: PaymentPlan[] }) {
-  const [isPending, startTransition] = useTransition();
+  const { run, isPending } = useAdminAction();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -50,7 +51,7 @@ export function PaymentPlanManager({ projectId, plans }: { projectId: string; pl
                 <button
                   type="button"
                   disabled={isPending}
-                  onClick={() => startTransition(() => togglePaymentPlanEnabled(plan.id, !plan.enabled))}
+                  onClick={() => run(() => togglePaymentPlanEnabled(plan.id, !plan.enabled), plan.enabled ? "Payment plan disabled." : "Payment plan enabled.")}
                   className={
                     plan.enabled
                       ? "inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-garden-100 px-2.5 py-1 text-xs font-medium text-garden-700"
@@ -103,7 +104,7 @@ export function PaymentPlanManager({ projectId, plans }: { projectId: string; pl
                   disabled={isPending}
                   onClick={() => {
                     if (confirm(`Delete "${plan.name}"? This can't be undone.`)) {
-                      startTransition(() => deletePaymentPlan(plan.id));
+                      run(() => deletePaymentPlan(plan.id), "Payment plan deleted.");
                     }
                   }}
                 >

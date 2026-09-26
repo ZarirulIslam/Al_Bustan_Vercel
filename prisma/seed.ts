@@ -24,10 +24,12 @@ async function main() {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
+  // The seeded account is the initial Super Admin (it can invite
+  // everyone else from /admin/users).
   await prisma.adminUser.upsert({
     where: { email },
-    update: { passwordHash },
-    create: { email, passwordHash, name: "Admin" },
+    update: { passwordHash, role: "super_admin", isActive: true },
+    create: { email, passwordHash, name: "Admin", role: "super_admin", emailVerifiedAt: new Date() },
   });
   console.log(`Admin user ready: ${email}`);
 

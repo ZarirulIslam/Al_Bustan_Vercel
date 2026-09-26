@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { GalleryImageUploadField } from "@/components/admin/GalleryImageUploadField";
 import { addHeroSlides } from "@/app/admin/(dashboard)/hero/actions";
+import { useActionFeedback } from "@/components/admin/AdminToaster";
 
 function SubmitButton({ disabledExtra }: { disabledExtra: boolean }) {
   const { pending } = useFormStatus();
@@ -19,6 +20,7 @@ function SubmitButton({ disabledExtra }: { disabledExtra: boolean }) {
 
 export function AddHeroSlidesForm() {
   const [state, formAction] = useActionState(addHeroSlides, {});
+  useActionFeedback(state, "Slides added. New slides are published and appear at the end of the sequence.");
   const [uploading, setUploading] = useState(false);
   const [fieldKey, setFieldKey] = useState(0);
   const router = useRouter();
@@ -28,17 +30,12 @@ export function AddHeroSlidesForm() {
       setFieldKey((k) => k + 1); // clears the upload field for the next batch
       router.refresh(); // picks up the newly added slides in the list below
     }
-  }, [state.success, router]);
+  }, [state, router]);
 
   return (
     <form action={formAction} className="space-y-4 rounded-xl border border-limestone-300 bg-white p-6 shadow-card">
       <h2 className="text-lg">Add Slides</h2>
 
-      {state.success && (
-        <p className="rounded border border-garden-300 bg-garden-50 px-4 py-3 text-sm text-garden-700">
-          Slides added. New slides are published and appear at the end of the sequence.
-        </p>
-      )}
       {state.error && (
         <p className="rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
           {state.error}

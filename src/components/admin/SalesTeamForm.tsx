@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import type { SalesEmployee } from "@/lib/types";
 import type { SalesEmployeeFormState } from "@/lib/admin/salesTeamSchema";
+import { useActionFeedback } from "@/components/admin/AdminToaster";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -50,6 +51,7 @@ export function SalesTeamForm({
   submitLabel: string;
 }) {
   const [state, formAction] = useActionState(action, {});
+  useActionFeedback(state, "Sales employee saved.");
 
   return (
     <form action={formAction} className="space-y-8">

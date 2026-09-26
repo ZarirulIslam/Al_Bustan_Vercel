@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { getEnabledRedirect } from "@/lib/redirects";
+import { prisma } from "@/lib/prisma";
+import { hasSectionAccess, sectionForPath } from "@/lib/admin/permissions";
 
 // Next.js 16 renamed middleware.ts to proxy.ts (and the exported
 // function to `proxy`) — same request-interception role, just runs
@@ -21,12 +23,15 @@ import { getEnabledRedirect } from "@/lib/redirects";
 //   2. Admin-managed URL redirects (/admin/redirects) for every
 //      other public path — see src/lib/redirects.ts for the lookup
 //      and its caching trade-off.
-// Admin pages reachable while signed out: login plus the
-// forgot/reset-password flow (which is how you get back in).
+// Admin pages reachable while signed out: login, the forgot/reset-
+// password flow, and the emailed invite/email-confirmation links. The
+// token in the link is what authorizes those, not a session.
 const PUBLIC_ADMIN_PATHS = new Set([
   "/admin/login",
   "/admin/forgot-password",
   "/admin/reset-password",
+  "/admin/accept-invite",
+  "/admin/verify-email",
 ]);
 
 export async function proxy(request: NextRequest) {
@@ -46,6 +51,31 @@ export async function proxy(request: NextRequest) {
       const loginUrl = new URL("/admin/login", request.url);
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
+    }
+
+    // Role / section access for the page itself, read fresh from the
+    // database (the JWT cookie can be up to a session old). This runs
+    // for full page loads, client navigations and server-action POSTs
+    // alike; server actions additionally check on their own, since
+    // they can be invoked from any page.
+    const section = sectionForPath(pathname);
+    const superAdminOnly = pathname === "/admin/users" || pathname.startsWith("/admin/users/");
+    if (section || superAdminOnly) {
+      const admin = token.id
+        ? await prisma.adminUser.findUnique({
+            where: { id: token.id },
+            select: { role: true, permissions: true, isActive: true },
+          })
+        : null;
+      if (!admin?.isActive) {
+        return NextResponse.redirect(new URL("/admin/login", request.url));
+      }
+      const allowed = superAdminOnly ? admin.role === "super_admin" : hasSectionAccess(admin, section!);
+      if (!allowed) {
+        const home = new URL("/admin", request.url);
+        home.searchParams.set("denied", section ?? "users");
+        return NextResponse.redirect(home);
+      }
     }
 
     return NextResponse.next();

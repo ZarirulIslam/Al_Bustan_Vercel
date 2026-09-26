@@ -5,6 +5,10 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { roleLabel } from "@/lib/admin/roles";
+import { hasSectionAccess, sectionForPath } from "@/lib/admin/permissions";
+import { AdminAvatar } from "@/components/admin/AdminAvatar";
+import { SIDEBAR_COOKIE } from "@/lib/admin/sidebar";
 
 type IconName =
   | "dashboard"
@@ -21,12 +25,17 @@ type IconName =
   | "redirects"
   | "activityLogs"
   | "settings"
-  | "account";
+  | "account"
+  | "users";
 
 interface NavItem {
   label: string;
   href: string;
   icon: IconName;
+  // Hidden for plain admins. Like the per-section filtering below this
+  // is only a UI nicety: proxy.ts and each section's server actions
+  // enforce access themselves (src/lib/admin/permissions.ts).
+  superAdminOnly?: boolean;
 }
 
 // Grouped under small section labels (Content / Sales / System) so the
@@ -60,7 +69,8 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
       { label: "SEO Redirects", href: "/admin/redirects", icon: "redirects" },
       { label: "Activity Logs", href: "/admin/activity-logs", icon: "activityLogs" },
       { label: "Website Settings", href: "/admin/settings", icon: "settings" },
-      { label: "Admin Account", href: "/admin/account", icon: "account" },
+      { label: "Admin Users", href: "/admin/users", icon: "users", superAdminOnly: true },
+      { label: "My Account", href: "/admin/account", icon: "account" },
     ],
   },
 ];
@@ -211,6 +221,20 @@ function NavIcon({ name }: { name: IconName }) {
           <path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
+    case "users":
+      return (
+        <svg {...common}>
+          <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.6" />
+          <path d="M3.5 19.5a5.5 5.5 0 0 1 11 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <path
+            d="M17.5 9.5 19 11l2.5-3"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
     case "account":
       return (
         <svg {...common}>
@@ -233,10 +257,51 @@ function NavIcon({ name }: { name: IconName }) {
   }
 }
 
-export function AdminSidebar() {
+// Desktop collapse state lives in a cookie (not localStorage) so the
+// server-rendered layout already knows it — no flash of the wide
+// sidebar before it snaps shut. See (dashboard)/layout.tsx.
+
+function persistCollapsed(collapsed: boolean) {
+  document.cookie = `${SIDEBAR_COOKIE}=${collapsed ? "collapsed" : "expanded"}; path=/admin; max-age=31536000; samesite=lax`;
+}
+
+// Double chevron that turns to point the way the sidebar will move.
+function CollapseIcon({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={cn("transition-transform duration-300 ease-estate", collapsed && "rotate-180")}
+    >
+      <path d="m11.5 7-5 5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="m17.5 7-5 5 5 5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="opacity-50 transition-opacity duration-200 group-hover:opacity-100"
+      />
+    </svg>
+  );
+}
+
+export function AdminSidebar({ initialCollapsed = false }: { initialCollapsed?: boolean }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
+  // Desktop only: collapsed shows an icon rail. The mobile drawer is
+  // always full width, so every collapsed style below is `md:`-scoped.
+  const [collapsed, setCollapsed] = useState(initialCollapsed);
+
+  function toggleCollapsed() {
+    const next = !collapsed;
+    setCollapsed(next);
+    persistCollapsed(next);
+  }
 
   // Close the mobile drawer on every navigation.
   useEffect(() => {
@@ -246,50 +311,89 @@ export function AdminSidebar() {
   const isActive = (href: string) =>
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 
-  const initial = session?.user?.email?.[0]?.toUpperCase() ?? "A";
+  const isSuperAdmin = session?.user?.role === "super_admin";
+  const canSee = (item: NavItem) => {
+    if (item.superAdminOnly) return isSuperAdmin;
+    const section = sectionForPath(item.href);
+    return !section || hasSectionAccess(session?.user, section);
+  };
+
+  // Hidden only on desktop while collapsed; always shown in the drawer.
+  const whenExpanded = collapsed ? "md:hidden" : "";
 
   const navList = (
-    <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
-      {navGroups.map((group, groupIndex) => (
-        <div key={group.label ?? `group-${groupIndex}`}>
-          {group.label && (
-            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft/60">
-              {group.label}
-            </p>
-          )}
-          <div className="space-y-1">
-            {group.items.map((item) => {
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
+    <nav className={cn("flex-1 space-y-5 overflow-y-auto px-3 py-5", collapsed && "md:space-y-3 md:px-2")}>
+      {navGroups
+        .map((group) => ({ ...group, items: group.items.filter(canSee) }))
+        .filter((group) => group.items.length > 0)
+        .map((group, groupIndex) => (
+          <div key={group.label ?? `group-${groupIndex}`}>
+            {group.label && (
+              <>
+                <p
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-200 ease-estate",
-                    active
-                      ? "bg-garden-700 text-white shadow-card"
-                      : "text-ink-soft hover:bg-limestone-200 hover:text-ink"
+                    "px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft/60",
+                    whenExpanded
                   )}
                 >
-                  <span className={cn(active ? "text-brass-light" : "text-garden-500")}>
-                    <NavIcon name={item.icon} />
-                  </span>
-                  {item.label}
-                </Link>
-              );
-            })}
+                  {group.label}
+                </p>
+                {collapsed && <div className="mx-3 mb-3 hidden border-t border-limestone-300 md:block" />}
+              </>
+            )}
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    title={collapsed ? item.label : undefined}
+                    aria-label={item.label}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-200 ease-estate",
+                      collapsed && "md:justify-center md:px-0",
+                      active
+                        ? "bg-garden-700 text-white shadow-card"
+                        : "text-ink-soft hover:bg-limestone-200 hover:text-ink"
+                    )}
+                  >
+                    <span className={cn(active ? "text-brass-light" : "text-garden-500")}>
+                      <NavIcon name={item.icon} />
+                    </span>
+                    <span className={whenExpanded}>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
     </nav>
   );
 
+  const signOutIcon = (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+
   const footer = (
-    <div className="space-y-3 border-t border-limestone-300 px-4 py-4">
+    <div className={cn("space-y-3 border-t border-limestone-300 px-4 py-4", collapsed && "md:px-2")}>
       <Link
         href="/"
         target="_blank"
-        className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-ink-soft transition-colors duration-200 ease-estate hover:bg-limestone-200 hover:text-garden-700"
+        title={collapsed ? "View Website" : undefined}
+        aria-label="View Website"
+        className={cn(
+          "flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-ink-soft transition-colors duration-200 ease-estate hover:bg-limestone-200 hover:text-garden-700",
+          collapsed && "md:justify-center md:px-0"
+        )}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
@@ -300,20 +404,26 @@ export function AdminSidebar() {
             strokeLinejoin="round"
           />
         </svg>
-        View Website
+        <span className={whenExpanded}>View Website</span>
       </Link>
-      <div className="flex items-center gap-3 rounded-xl bg-limestone-200/60 px-3 py-2.5">
-        <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-garden-700 text-sm font-semibold text-white">
-          {initial}
-        </span>
-        <div className="min-w-0 flex-1">
+      <div
+        className={cn(
+          "flex items-center gap-3 rounded-xl bg-limestone-200/60 px-3 py-2.5",
+          collapsed && "md:flex-col md:gap-2 md:bg-transparent md:px-0 md:py-0"
+        )}
+      >
+        <Link href="/admin/account" title="My Account" className="rounded-full">
+          <AdminAvatar url={session?.user?.image} label={session?.user?.name ?? session?.user?.email} />
+        </Link>
+        <div className={cn("min-w-0 flex-1", whenExpanded)}>
           <Link
             href="/admin/account"
-            title="Admin account settings"
+            title="My Account"
             className="block truncate text-xs font-medium text-ink hover:text-garden-700"
           >
             {session?.user?.email}
           </Link>
+          {session?.user?.role && <p className="text-[11px] text-ink-soft">{roleLabel(session.user.role)}</p>}
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/admin/login" })}
@@ -322,6 +432,17 @@ export function AdminSidebar() {
             Sign Out
           </button>
         </div>
+        {collapsed && (
+          <button
+            type="button"
+            onClick={() => signOut({ callbackUrl: "/admin/login" })}
+            title="Sign Out"
+            aria-label="Sign Out"
+            className="hidden h-9 w-9 items-center justify-center rounded-xl text-ink-soft hover:bg-limestone-200 hover:text-garden-700 md:flex"
+          >
+            {signOutIcon}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -359,17 +480,23 @@ export function AdminSidebar() {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-white shadow-card-hover transition-transform duration-300 ease-estate",
-          "md:sticky md:top-0 md:z-auto md:h-screen md:w-64 md:flex-shrink-0 md:translate-x-0 md:border-r md:border-limestone-300 md:shadow-none",
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-white shadow-card-hover transition-[transform,width] duration-300 ease-estate",
+          "md:sticky md:top-0 md:z-auto md:h-screen md:flex-shrink-0 md:translate-x-0 md:border-r md:border-limestone-300 md:shadow-none",
+          collapsed ? "md:w-[76px]" : "md:w-64",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex items-center justify-between border-b border-limestone-300 px-6 py-6">
-          <Link href="/admin" className="flex items-center gap-3">
+        <div
+          className={cn(
+            "flex items-center justify-between border-b border-limestone-300 px-6 py-6",
+            collapsed && "md:justify-center md:px-2"
+          )}
+        >
+          <Link href="/admin" className="flex items-center gap-3" title={collapsed ? "Dashboard" : undefined}>
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-garden-700 font-display text-base text-white">
               AB
             </span>
-            <span>
+            <span className={whenExpanded}>
               <p className="font-display text-lg leading-tight text-garden-700">Al Bustan</p>
               <p className="text-xs text-ink-soft">Admin Dashboard</p>
             </span>
@@ -385,6 +512,22 @@ export function AdminSidebar() {
             </svg>
           </button>
         </div>
+
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!collapsed}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={cn(
+            "group absolute -right-3.5 top-[30px] z-10 hidden h-7 w-7 items-center justify-center rounded-full",
+            "border border-limestone-300 bg-white text-garden-700 shadow-card ring-4 ring-limestone-100",
+            "transition-all duration-300 ease-estate hover:scale-110 hover:border-garden-700 hover:bg-garden-700 hover:text-brass-light hover:shadow-card-hover",
+            "focus-visible:outline-none focus-visible:ring-garden-300 active:scale-95 md:flex"
+          )}
+        >
+          <CollapseIcon collapsed={collapsed} />
+        </button>
 
         {navList}
         {footer}

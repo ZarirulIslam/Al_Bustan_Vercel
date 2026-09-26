@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSectionAccess } from "@/lib/adminAuth";
+import type { AdminSection } from "@/lib/admin/permissions";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activityLog";
 import { contentItemFormSchema, type ContentItemFormState } from "@/lib/admin/contentItemSchema";
@@ -13,9 +13,21 @@ import type { ContentSection } from "@/lib/types";
 // imported directly by both /admin/homepage and /admin/about rather
 // than duplicated per page, since the underlying model and shape are
 // identical; only which public page needs revalidating differs.
-async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-  if (!session) throw new Error("Not authenticated.");
+//
+// Access follows the page the list lives on: homepage_* lists need the
+// Homepage section, about_* lists the About Page section. For actions
+// on an existing item its *stored* section is checked too, since the
+// section argument comes from the client.
+function pageSectionFor(section: ContentSection): AdminSection {
+  return section.startsWith("homepage_") ? "homepage" : "about";
+}
+
+async function requireContentAccess(section: ContentSection, itemId?: string) {
+  await requireSectionAccess(pageSectionFor(section));
+  if (itemId) {
+    const item = await prisma.contentItem.findUnique({ where: { id: itemId }, select: { section: true } });
+    if (item) await requireSectionAccess(pageSectionFor(item.section as ContentSection));
+  }
 }
 
 function revalidateForSection(section: ContentSection) {
@@ -28,7 +40,7 @@ export async function createContentItem(
   _prevState: ContentItemFormState,
   formData: FormData
 ): Promise<ContentItemFormState> {
-  await requireAdmin();
+  await requireContentAccess(section);
 
   const raw = Object.fromEntries(formData.entries());
   const parsed = contentItemFormSchema.safeParse(raw);
@@ -76,7 +88,7 @@ export async function updateContentItem(
   _prevState: ContentItemFormState,
   formData: FormData
 ): Promise<ContentItemFormState> {
-  await requireAdmin();
+  await requireContentAccess(section, id);
 
   const raw = Object.fromEntries(formData.entries());
   const parsed = contentItemFormSchema.safeParse(raw);
@@ -115,7 +127,7 @@ export async function updateContentItem(
 }
 
 export async function deleteContentItem(id: string, section: ContentSection) {
-  await requireAdmin();
+  await requireContentAccess(section, id);
   const item = await prisma.contentItem.delete({ where: { id } }).catch(() => null);
   if (item) {
     await logActivity({
@@ -129,7 +141,7 @@ export async function deleteContentItem(id: string, section: ContentSection) {
 }
 
 export async function toggleContentItemPublished(id: string, section: ContentSection, published: boolean) {
-  await requireAdmin();
+  await requireContentAccess(section, id);
   const item = await prisma.contentItem.update({ where: { id }, data: { published } });
   await logActivity({
     action: published ? "published" : "unpublished",
@@ -141,7 +153,7 @@ export async function toggleContentItemPublished(id: string, section: ContentSec
 }
 
 export async function moveContentItem(id: string, section: ContentSection, direction: "up" | "down") {
-  await requireAdmin();
+  await requireContentAccess(section, id);
 
   const items = await prisma.contentItem.findMany({
     where: { section },

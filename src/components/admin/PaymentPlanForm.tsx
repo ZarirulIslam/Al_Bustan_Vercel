@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { createPaymentPlan, updatePaymentPlan } from "@/app/admin/(dashboard)/projects/actions";
 import type { PaymentPlan } from "@/lib/types";
+import { useActionFeedback } from "@/components/admin/AdminToaster";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -54,6 +55,7 @@ export function PaymentPlanForm({
 }) {
   const action = plan ? updatePaymentPlan.bind(null, plan.id) : createPaymentPlan.bind(null, projectId);
   const [state, formAction] = useActionState(action, {});
+  useActionFeedback(state, plan ? `Payment plan "${plan.name}" saved.` : "Payment plan added.");
   const router = useRouter();
 
   useEffect(() => {

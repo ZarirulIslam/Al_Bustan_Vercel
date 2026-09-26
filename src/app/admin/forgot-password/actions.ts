@@ -2,14 +2,8 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/lib/email";
-import { getSiteSettings } from "@/lib/data/settings";
-import {
-  PASSWORD_RESET_TTL_MS,
-  generateResetToken,
-  getAppBaseUrl,
-  passwordResetEmail,
-} from "@/lib/admin/account";
+import { issueAdminToken } from "@/lib/admin/tokens";
+import { sendPasswordResetEmail } from "@/lib/admin/authEmails";
 import type { AccountFormState } from "@/lib/admin/accountSchema";
 
 // Same best-effort, in-memory caveats as the login throttle in
@@ -44,23 +38,14 @@ export async function requestPasswordReset(
   }
   lastRequestAt.set(email, Date.now());
 
+  // Deactivated accounts get the same generic answer and no email.
   const admin = await prisma.adminUser.findUnique({ where: { email } });
-  if (!admin) return { success: true, message: GENERIC_MESSAGE };
+  if (!admin?.isActive) return { success: true, message: GENERIC_MESSAGE };
 
-  const { token, tokenHash } = generateResetToken();
-  await prisma.adminUser.update({
-    where: { id: admin.id },
-    data: {
-      passwordResetTokenHash: tokenHash,
-      passwordResetExpiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
-    },
-  });
-
-  const resetUrl = `${await getAppBaseUrl()}/admin/reset-password?token=${encodeURIComponent(token)}`;
-  const { companyName } = await getSiteSettings();
+  const token = await issueAdminToken(admin.id, "password_reset");
 
   try {
-    await sendEmail({ to: admin.email, ...passwordResetEmail(resetUrl, companyName) });
+    await sendPasswordResetEmail(admin.email, token);
   } catch (error) {
     console.error("[password-reset] Failed to send reset email:", error);
     // Let them retry straight away rather than wait out the cooldown

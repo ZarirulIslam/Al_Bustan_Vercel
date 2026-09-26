@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import type { ContactInquiry, InquiryStatus, LeadSource, PropertyType, SalesEmployee } from "@/lib/types";
 import {
   updateInquiryStatus,
@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
+import { useAdminAction } from "@/components/admin/AdminToaster";
 
 const statusLabels: Record<InquiryStatus, string> = {
   new: "New",
@@ -102,7 +103,7 @@ function InquiryRow({
   inquiry: ContactInquiry;
   salesEmployees: SalesEmployee[];
 }) {
-  const [isPending, startTransition] = useTransition();
+  const { run, isPending } = useAdminAction();
   const [expanded, setExpanded] = useState(false);
   const [managing, setManaging] = useState(false);
 
@@ -119,9 +120,7 @@ function InquiryRow({
   const followUp = followUpBadge(inquiry.followUpDate, inquiry.status);
 
   function saveLead() {
-    startTransition(() => {
-      updateInquiryLead(inquiry.id, { leadSource, propertyType, budget, customerNotes, followUpDate });
-    });
+    run(() => updateInquiryLead(inquiry.id, { leadSource, propertyType, budget, customerNotes, followUpDate }), "Lead details saved.");
   }
 
   return (
@@ -298,7 +297,7 @@ function InquiryRow({
           defaultValue={inquiry.status}
           disabled={isPending}
           onChange={(e) =>
-            startTransition(() => updateInquiryStatus(inquiry.id, e.target.value as InquiryStatus))
+            run(() => updateInquiryStatus(inquiry.id, e.target.value as InquiryStatus), "Lead status updated.")
           }
           className="rounded-lg border border-limestone-300 bg-white px-2.5 py-1.5 text-sm text-ink outline-none transition-colors focus:border-garden-500"
         >
@@ -317,7 +316,7 @@ function InquiryRow({
           defaultValue={inquiry.assignedToId ?? ""}
           disabled={isPending}
           onChange={(e) =>
-            startTransition(() => updateInquiryAssignment(inquiry.id, e.target.value || null))
+            run(() => updateInquiryAssignment(inquiry.id, e.target.value || null), "Lead assignment updated.")
           }
           className="rounded-lg border border-limestone-300 bg-white px-2.5 py-1.5 text-sm text-ink outline-none transition-colors focus:border-garden-500"
         >
@@ -338,7 +337,7 @@ function InquiryRow({
           className="ml-auto"
           onClick={() => {
             if (confirm("Delete this inquiry? This can't be undone.")) {
-              startTransition(() => deleteInquiry(inquiry.id));
+              run(() => deleteInquiry(inquiry.id), "Inquiry deleted.");
             }
           }}
         >

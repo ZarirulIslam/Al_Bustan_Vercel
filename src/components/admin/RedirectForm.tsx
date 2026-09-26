@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import type { Redirect } from "@/lib/types";
 import type { RedirectFormState } from "@/lib/admin/redirectSchema";
+import { useActionFeedback } from "@/components/admin/AdminToaster";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -50,6 +51,7 @@ export function RedirectForm({
   submitLabel: string;
 }) {
   const [state, formAction] = useActionState(action, {});
+  useActionFeedback(state, "Redirect saved.");
 
   return (
     <form action={formAction} className="space-y-8">

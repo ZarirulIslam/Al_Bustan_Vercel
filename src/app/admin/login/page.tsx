@@ -21,12 +21,12 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from") || "/admin";
-  const notice =
-    searchParams.get("notice") === "password-reset"
-      ? "Your password has been reset. Sign in with your new password."
-      : searchParams.get("notice") === "password-changed"
-        ? "Password changed. Please sign in again with your new password."
-        : null;
+  const notices: Record<string, string> = {
+    "password-reset": "Your password has been reset. Sign in with your new password.",
+    "password-changed": "Password changed. Please sign in again with your new password.",
+    "invite-accepted": "Your account is ready. Sign in with your email and new password.",
+  };
+  const notice = notices[searchParams.get("notice") ?? ""] ?? null;
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -46,7 +46,11 @@ function LoginForm() {
     setLoading(false);
 
     if (result?.error) {
-      setError("Incorrect email or password.");
+      setError(
+        result.error === "AccountDisabled"
+          ? "This account has been deactivated. Contact a Super Admin."
+          : "Incorrect email or password."
+      );
       return;
     }
 

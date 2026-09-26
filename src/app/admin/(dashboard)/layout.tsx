@@ -1,9 +1,12 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 import { authOptions } from "@/lib/auth";
 import { AuthSessionProvider } from "@/components/providers/AuthSessionProvider";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminToastProvider } from "@/components/admin/AdminToaster";
+import { SIDEBAR_COOKIE } from "@/lib/admin/sidebar";
 
 export default async function AdminLayout({
   children,
@@ -20,14 +23,18 @@ export default async function AdminLayout({
     redirect("/admin/login");
   }
 
+  const sidebarCollapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "collapsed";
+
   return (
     <AuthSessionProvider>
-      <div className="flex min-h-screen flex-col bg-limestone-100 md:flex-row">
-        <AdminSidebar />
-        <main className="flex-1 overflow-y-auto px-5 py-8 sm:px-8 md:px-12 md:py-10">
-          <div className="mx-auto w-full max-w-6xl">{children}</div>
-        </main>
-      </div>
+      <AdminToastProvider>
+        <div className="flex min-h-screen flex-col bg-limestone-100 md:flex-row">
+          <AdminSidebar initialCollapsed={sidebarCollapsed} />
+          <main className="flex-1 overflow-y-auto px-5 py-8 sm:px-8 md:px-12 md:py-10">
+            <div className="mx-auto w-full max-w-6xl">{children}</div>
+          </main>
+        </div>
+      </AdminToastProvider>
     </AuthSessionProvider>
   );
 }

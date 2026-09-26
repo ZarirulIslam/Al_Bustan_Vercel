@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SiteFaqForm } from "@/components/admin/SiteFaqForm";
 import { deleteSiteFaq, moveSiteFaq, toggleSiteFaqPublished } from "@/app/admin/(dashboard)/faqs/actions";
 import type { SiteFaq } from "@/lib/types";
+import { useAdminAction } from "@/components/admin/AdminToaster";
 
 export function SiteFaqManager({ faqs }: { faqs: SiteFaq[] }) {
-  const [isPending, startTransition] = useTransition();
+  const { run, isPending } = useAdminAction();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -44,7 +45,7 @@ export function SiteFaqManager({ faqs }: { faqs: SiteFaq[] }) {
                 <button
                   type="button"
                   disabled={isPending}
-                  onClick={() => startTransition(() => toggleSiteFaqPublished(faq.id, !faq.published))}
+                  onClick={() => run(() => toggleSiteFaqPublished(faq.id, !faq.published), faq.published ? "FAQ unpublished." : "FAQ published.")}
                   className={
                     faq.published
                       ? "inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-garden-100 px-2.5 py-1 text-xs font-medium text-garden-700"
@@ -61,7 +62,7 @@ export function SiteFaqManager({ faqs }: { faqs: SiteFaq[] }) {
                 <button
                   type="button"
                   disabled={isPending || index === 0}
-                  onClick={() => startTransition(() => moveSiteFaq(faq.id, "up"))}
+                  onClick={() => run(() => moveSiteFaq(faq.id, "up"))}
                   className="rounded-lg border border-limestone-300 px-3 py-1 text-xs font-medium text-ink-soft transition-colors duration-150 hover:border-garden-300 hover:text-garden-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-limestone-300 disabled:hover:text-ink-soft"
                 >
                   ↑ Move up
@@ -69,7 +70,7 @@ export function SiteFaqManager({ faqs }: { faqs: SiteFaq[] }) {
                 <button
                   type="button"
                   disabled={isPending || index === faqs.length - 1}
-                  onClick={() => startTransition(() => moveSiteFaq(faq.id, "down"))}
+                  onClick={() => run(() => moveSiteFaq(faq.id, "down"))}
                   className="rounded-lg border border-limestone-300 px-3 py-1 text-xs font-medium text-ink-soft transition-colors duration-150 hover:border-garden-300 hover:text-garden-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-limestone-300 disabled:hover:text-ink-soft"
                 >
                   ↓ Move down
@@ -93,7 +94,7 @@ export function SiteFaqManager({ faqs }: { faqs: SiteFaq[] }) {
                   disabled={isPending}
                   onClick={() => {
                     if (confirm("Delete this FAQ? This can't be undone.")) {
-                      startTransition(() => deleteSiteFaq(faq.id));
+                      run(() => deleteSiteFaq(faq.id), "FAQ deleted.");
                     }
                   }}
                 >

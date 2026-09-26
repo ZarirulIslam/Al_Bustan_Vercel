@@ -1,14 +1,14 @@
 "use client";
 
-import { useTransition } from "react";
 import Image from "next/image";
 import type { BlogPost } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { deletePost, togglePostPublished } from "@/app/admin/(dashboard)/blog/actions";
+import { useAdminAction } from "@/components/admin/AdminToaster";
 
 export function BlogTable({ posts }: { posts: BlogPost[] }) {
-  const [isPending, startTransition] = useTransition();
+  const { run, isPending } = useAdminAction();
 
   if (posts.length === 0) {
     return (
@@ -54,7 +54,7 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
                   type="button"
                   disabled={isPending}
                   onClick={() =>
-                    startTransition(() => togglePostPublished(post.id, !post.published))
+                    run(() => togglePostPublished(post.id, !post.published), post.published ? "Blog post unpublished." : "Blog post published.")
                   }
                   className={
                     post.published
@@ -83,7 +83,7 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
                     disabled={isPending}
                     onClick={() => {
                       if (confirm(`Delete "${post.title}"? This can't be undone.`)) {
-                        startTransition(() => deletePost(post.id));
+                        run(() => deletePost(post.id), "Blog post deleted.");
                       }
                     }}
                   >

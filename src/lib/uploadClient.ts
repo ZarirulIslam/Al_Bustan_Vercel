@@ -5,7 +5,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabaseBrowserClient";
 const MAX_CLIENT_SIDE_IMAGE_BYTES = 4 * 1024 * 1024; // 4MB — see src/lib/storage/types.ts
 const MAX_CLIENT_SIDE_DOCUMENT_BYTES = 10 * 1024 * 1024; // 10MB — brochures
 
-type UploadSubdir = "projects" | "blog" | "settings" | "gallery" | "brochures" | "hero" | "testimonials";
+type UploadSubdir = "projects" | "blog" | "settings" | "gallery" | "brochures" | "hero" | "testimonials" | "avatars";
 
 // NOTE: this client-side check is a fast, friendly first line of
 // feedback only — it is not a security boundary (nothing stops a
