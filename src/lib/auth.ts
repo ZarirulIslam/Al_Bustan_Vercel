@@ -40,7 +40,7 @@ function recordFailedLoginAttempt(email: string) {
   loginAttempts.set(email, record);
 }
 
-function clearLoginAttempts(email: string) {
+export function clearLoginAttempts(email: string) {
   loginAttempts.delete(email);
 }
 
@@ -86,15 +86,46 @@ export const authOptions: AuthOptions = {
     }),
   ],
   callbacks: {
+    // Re-checks the admin row on every session read (a single-row
+    // primary-key lookup — cheap for a one-admin CMS). This is what
+    // makes account changes take effect on sessions that already exist:
+    //  - a changed email shows up immediately (sidebar, activity log)
+    //  - a password change/reset bumps sessionVersion, and throwing
+    //    here makes NextAuth treat the old token as invalid, so every
+    //    other signed-in browser is logged out too.
+    // Tokens issued before sessionVersion existed have no `sv`, which
+    // is treated as 0 (the column default) so nobody is kicked out
+    // just by deploying this.
     async jwt({ token, user }) {
       if (user) {
+        const admin = await prisma.adminUser.findUnique({
+          where: { id: user.id },
+          select: { sessionVersion: true },
+        });
         token.id = user.id;
+        token.sv = admin?.sessionVersion ?? 0;
+        return token;
       }
+
+      if (!token.id) return token;
+
+      const admin = await prisma.adminUser.findUnique({
+        where: { id: token.id as string },
+        select: { email: true, name: true, sessionVersion: true },
+      });
+      if (!admin || admin.sessionVersion !== ((token.sv as number | undefined) ?? 0)) {
+        throw new Error("Session is no longer valid.");
+      }
+
+      token.email = admin.email;
+      token.name = admin.name ?? "Admin";
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         (session.user as { id?: string }).id = token.id as string | undefined;
+        session.user.email = token.email;
+        session.user.name = token.name;
       }
       return session;
     },

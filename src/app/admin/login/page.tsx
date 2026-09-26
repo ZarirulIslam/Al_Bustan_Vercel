@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 import { useState, type FormEvent, Suspense } from "react";
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
@@ -20,6 +21,12 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from") || "/admin";
+  const notice =
+    searchParams.get("notice") === "password-reset"
+      ? "Your password has been reset. Sign in with your new password."
+      : searchParams.get("notice") === "password-changed"
+        ? "Password changed. Please sign in again with your new password."
+        : null;
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,6 +63,12 @@ function LoginForm() {
           </p>
           <h1 className="mt-2 text-2xl">Admin Login</h1>
 
+          {notice && (
+            <p className="mt-4 rounded border border-garden-300 bg-garden-50 px-4 py-3 text-sm text-garden-700">
+              {notice}
+            </p>
+          )}
+
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
               <label htmlFor="email" className="text-sm text-ink">
@@ -71,9 +84,17 @@ function LoginForm() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="text-sm text-ink">
-                Password
-              </label>
+              <div className="flex items-baseline justify-between">
+                <label htmlFor="password" className="text-sm text-ink">
+                  Password
+                </label>
+                <Link
+                  href="/admin/forgot-password"
+                  className="text-xs font-medium text-garden-700 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 id="password"
                 name="password"

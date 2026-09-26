@@ -33,6 +33,17 @@ model AdminUser {
   name         String?
   createdAt    DateTime @default(now())
 
+  // Bumped on every password change/reset. Each session JWT carries
+  // the value it was issued with (see src/lib/auth.ts), so bumping it
+  // signs out every existing session — including a stolen one.
+  sessionVersion Int @default(0)
+
+  // Forgot-password flow (src/lib/admin/account.ts). Only a SHA-256
+  // hash of the emailed token is stored, never the token itself, and
+  // both fields are cleared as soon as it's used.
+  passwordResetTokenHash String?   @unique
+  passwordResetExpiresAt DateTime?
+
   activityLogs ActivityLog[]
 }
 

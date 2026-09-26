@@ -20,7 +20,8 @@ type IconName =
   | "salesTeam"
   | "redirects"
   | "activityLogs"
-  | "settings";
+  | "settings"
+  | "account";
 
 interface NavItem {
   label: string;
@@ -59,6 +60,7 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
       { label: "SEO Redirects", href: "/admin/redirects", icon: "redirects" },
       { label: "Activity Logs", href: "/admin/activity-logs", icon: "activityLogs" },
       { label: "Website Settings", href: "/admin/settings", icon: "settings" },
+      { label: "Admin Account", href: "/admin/account", icon: "account" },
     ],
   },
 ];
@@ -209,6 +211,13 @@ function NavIcon({ name }: { name: IconName }) {
           <path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
+    case "account":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="8.5" r="3.5" stroke="currentColor" strokeWidth="1.6" />
+          <path d="M5 20a7 7 0 0 1 14 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      );
     case "settings":
       return (
         <svg {...common}>
@@ -298,7 +307,13 @@ export function AdminSidebar() {
           {initial}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-medium text-ink">{session?.user?.email}</p>
+          <Link
+            href="/admin/account"
+            title="Admin account settings"
+            className="block truncate text-xs font-medium text-ink hover:text-garden-700"
+          >
+            {session?.user?.email}
+          </Link>
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/admin/login" })}

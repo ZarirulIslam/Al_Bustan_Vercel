@@ -21,11 +21,19 @@ import { getEnabledRedirect } from "@/lib/redirects";
 //   2. Admin-managed URL redirects (/admin/redirects) for every
 //      other public path — see src/lib/redirects.ts for the lookup
 //      and its caching trade-off.
+// Admin pages reachable while signed out: login plus the
+// forgot/reset-password flow (which is how you get back in).
+const PUBLIC_ADMIN_PATHS = new Set([
+  "/admin/login",
+  "/admin/forgot-password",
+  "/admin/reset-password",
+]);
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/admin")) {
-    if (pathname === "/admin/login") {
+    if (PUBLIC_ADMIN_PATHS.has(pathname)) {
       return NextResponse.next();
     }
 
