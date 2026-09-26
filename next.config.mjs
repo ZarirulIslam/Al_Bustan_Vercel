@@ -1,25 +1,20 @@
 /** @type {import('next').NextConfig} */
 import { normalizeOrigin, resolveAppUrl } from "./src/lib/appUrl.mjs";
 
-// NextAuth's client module reads NEXTAUTH_URL and constructs a URL
-// object the moment it's imported — including during `next build`'s
-// module-loading pass, which happens for every page regardless of
-// static/dynamic rendering. If NEXTAUTH_URL is unset (e.g. not yet
-// added in Vercel's dashboard), that crashes the entire build with
-// "TypeError: Invalid URL". Vercel always provides VERCEL_URL for
-// every deployment with no configuration needed, so use that as a
-// guaranteed fallback — this makes the build resilient to a missing
-// env var instead of depending on it being configured correctly.
-// An explicitly-set, valid NEXTAUTH_URL (e.g. the final custom domain)
-// still always wins; a malformed or copied-localhost one is repaired or
-// replaced — see src/lib/appUrl.mjs.
+// NEXTAUTH_URL is inlined into the app at build time (next-auth's
+// client module builds a URL object from it as soon as it's imported,
+// and an unset/malformed value crashed `next build` with "Invalid URL").
+// The value comes from src/lib/appUrl.mjs, which is environment-driven:
+// APP_URL → NEXTAUTH_URL → Vercel's system URL → localhost (dev only).
+// src/lib/auth.ts applies the same value at runtime for NextAuth's server.
 const resolvedNextAuthUrl = resolveAppUrl(process.env);
-if (process.env.NEXTAUTH_URL && normalizeOrigin(process.env.NEXTAUTH_URL) !== resolvedNextAuthUrl) {
-  console.warn(
-    `[next.config] NEXTAUTH_URL "${process.env.NEXTAUTH_URL}" is not usable here; using ${resolvedNextAuthUrl}. Fix it in your environment variables.`
-  );
-} else if (process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.trim() !== resolvedNextAuthUrl) {
-  console.warn(`[next.config] NEXTAUTH_URL normalized from "${process.env.NEXTAUTH_URL}" to ${resolvedNextAuthUrl}.`);
+for (const name of ["APP_URL", "NEXTAUTH_URL"]) {
+  const raw = process.env[name];
+  if (raw && normalizeOrigin(raw) !== resolvedNextAuthUrl) {
+    console.warn(
+      `[next.config] ${name}="${raw}" differs from the site URL in use (${resolvedNextAuthUrl}). Set APP_URL and NEXTAUTH_URL to the same public URL.`
+    );
+  }
 }
 
 const nextConfig = {
