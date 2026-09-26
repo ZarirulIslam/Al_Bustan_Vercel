@@ -1,25 +1,14 @@
-import { headers } from "next/headers";
+import { resolveAppUrl } from "@/lib/appUrl.mjs";
 import type { AdminRole } from "@prisma/client";
 import { sendEmail } from "@/lib/email";
 import { getSiteSettings } from "@/lib/data/settings";
 import { TOKEN_TTL_MS } from "@/lib/admin/tokens";
 import { roleLabel } from "@/lib/admin/roles";
 
-// NEXTAUTH_URL is the canonical public URL wherever it's set. The
-// request's own host is only a fallback (e.g. Vercel preview deploys
-// that leave NEXTAUTH_URL unset).
-async function getAppBaseUrl(): Promise<string> {
-  const configured = process.env.NEXTAUTH_URL;
-  if (configured) return configured.replace(/\/+$/, "");
-
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
-}
-
+// Same public origin NextAuth uses (see src/lib/appUrl.mjs), so emailed
+// links never point at localhost in production.
 async function linkTo(path: string, token: string) {
-  return `${await getAppBaseUrl()}${path}?token=${encodeURIComponent(token)}`;
+  return `${resolveAppUrl(process.env)}${path}?token=${encodeURIComponent(token)}`;
 }
 
 function escapeHtml(value: string): string {

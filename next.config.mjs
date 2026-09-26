@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+import { normalizeOrigin, resolveAppUrl } from "./src/lib/appUrl.mjs";
 
 // NextAuth's client module reads NEXTAUTH_URL and constructs a URL
 // object the moment it's imported — including during `next build`'s
@@ -9,11 +10,17 @@
 // every deployment with no configuration needed, so use that as a
 // guaranteed fallback — this makes the build resilient to a missing
 // env var instead of depending on it being configured correctly.
-// An explicitly-set NEXTAUTH_URL (e.g. the final custom domain) still
-// always wins.
-const resolvedNextAuthUrl =
-  process.env.NEXTAUTH_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+// An explicitly-set, valid NEXTAUTH_URL (e.g. the final custom domain)
+// still always wins; a malformed or copied-localhost one is repaired or
+// replaced — see src/lib/appUrl.mjs.
+const resolvedNextAuthUrl = resolveAppUrl(process.env);
+if (process.env.NEXTAUTH_URL && normalizeOrigin(process.env.NEXTAUTH_URL) !== resolvedNextAuthUrl) {
+  console.warn(
+    `[next.config] NEXTAUTH_URL "${process.env.NEXTAUTH_URL}" is not usable here; using ${resolvedNextAuthUrl}. Fix it in your environment variables.`
+  );
+} else if (process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.trim() !== resolvedNextAuthUrl) {
+  console.warn(`[next.config] NEXTAUTH_URL normalized from "${process.env.NEXTAUTH_URL}" to ${resolvedNextAuthUrl}.`);
+}
 
 const nextConfig = {
   env: {

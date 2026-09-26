@@ -261,6 +261,11 @@ function NavIcon({ name }: { name: IconName }) {
 // server-rendered layout already knows it — no flash of the wide
 // sidebar before it snaps shut. See (dashboard)/layout.tsx.
 
+async function signOutToLogin() {
+  await signOut({ redirect: false });
+  window.location.assign("/admin/login");
+}
+
 function persistCollapsed(collapsed: boolean) {
   document.cookie = `${SIDEBAR_COOKIE}=${collapsed ? "collapsed" : "expanded"}; path=/admin; max-age=31536000; samesite=lax`;
 }
@@ -445,7 +450,7 @@ export function AdminSidebar({
           {user?.role && <p className="text-[11px] text-ink-soft">{roleLabel(user.role)}</p>}
           <button
             type="button"
-            onClick={() => signOut({ callbackUrl: "/admin/login" })}
+            onClick={signOutToLogin}
             className="text-xs font-medium text-garden-700 hover:underline"
           >
             Sign Out
@@ -454,7 +459,7 @@ export function AdminSidebar({
         {collapsed && (
           <button
             type="button"
-            onClick={() => signOut({ callbackUrl: "/admin/login" })}
+            onClick={signOutToLogin}
             title="Sign Out"
             aria-label="Sign Out"
             className="hidden h-9 w-9 items-center justify-center rounded-xl text-ink-soft hover:bg-limestone-200 hover:text-garden-700 md:flex"

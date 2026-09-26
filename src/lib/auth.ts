@@ -2,6 +2,22 @@ import type { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { resolveAppUrl } from "@/lib/appUrl.mjs";
+
+// NextAuth reads NEXTAUTH_URL from the real environment at request time
+// (its server code isn't covered by next.config's build-time `env`), so
+// repair it here too — otherwise a malformed Vercel value makes NextAuth
+// fall back to http://localhost:3000. Written with Reflect.set on
+// purpose: the build inlines `process.env.NEXTAUTH_URL` (next.config
+// `env`), which would turn a plain assignment into a syntax error.
+const runtimeEnv = globalThis.process.env;
+export const APP_URL = resolveAppUrl(runtimeEnv);
+Reflect.set(runtimeEnv, "NEXTAUTH_URL", APP_URL);
+
+// Decided once from APP_URL instead of by NextAuth and getToken() each
+// guessing from the environment, so the cookie NextAuth sets is always
+// the one proxy.ts looks for.
+export const USE_SECURE_COOKIES = APP_URL.startsWith("https://");
 
 // Best-effort login throttling — not a hard guarantee. This is an
 // in-memory map: it resets on every server restart/redeploy, and
@@ -52,6 +68,7 @@ export const authOptions: AuthOptions = {
   // a meaningful reduction in the window a stolen/left-open session
   // stays usable, at the cost of signing in somewhat more often.
   session: { strategy: "jwt", maxAge: 12 * 60 * 60 },
+  useSecureCookies: USE_SECURE_COOKIES,
   pages: {
     signIn: "/admin/login",
   },

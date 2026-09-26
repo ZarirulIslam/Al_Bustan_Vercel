@@ -17,10 +17,21 @@ import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { defaultSiteSettings } from "@/lib/constants";
 
+// Where to go after signing in. Only a same-site path inside /admin is
+// accepted — never an absolute URL (which could send the admin to
+// another host, e.g. an old http://localhost:3000 link, or be abused as
+// an open redirect). Anything else falls back to the dashboard.
+function safeReturnPath(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return "/admin";
+  if (value !== "/admin" && !value.startsWith("/admin/") && !value.startsWith("/admin?")) return "/admin";
+  if (value.startsWith("/admin/login")) return "/admin";
+  return value;
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get("from") || "/admin";
+  const from = safeReturnPath(searchParams.get("from"));
   const notices: Record<string, string> = {
     "password-reset": "Your password has been reset. Sign in with your new password.",
     "password-changed": "Password changed. Please sign in again with your new password.",
@@ -37,9 +48,12 @@ function LoginForm() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    // redirect: false — we navigate ourselves with a relative path below,
+    // so the result never depends on NextAuth's absolute base URL.
     const result = await signIn("credentials", {
       email: formData.get("email"),
       password: formData.get("password"),
+      callbackUrl: from,
       redirect: false,
     });
 
@@ -54,7 +68,7 @@ function LoginForm() {
       return;
     }
 
-    router.push(from);
+    router.replace(from);
     router.refresh();
   }
 

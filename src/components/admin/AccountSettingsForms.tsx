@@ -206,7 +206,10 @@ export function ChangePasswordForm({ action }: { action: Action }) {
   useEffect(() => {
     // The server has already invalidated every session, this one
     // included — sign out cleanly and go to the login page.
-    if (state.success) void signOut({ callbackUrl: "/admin/login?notice=password-changed" });
+    // Relative destination: never an absolute URL built from NEXTAUTH_URL.
+    if (state.success) {
+      void signOut({ redirect: false }).then(() => window.location.assign("/admin/login?notice=password-changed"));
+    }
   }, [state.success]);
 
   return (
