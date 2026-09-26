@@ -289,9 +289,28 @@ function CollapseIcon({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-export function AdminSidebar({ initialCollapsed = false }: { initialCollapsed?: boolean }) {
+// What the server already knows about the signed-in admin, so the menu
+// renders complete on first paint instead of waiting for the client
+// session fetch (which briefly showed only Dashboard / My Account).
+export interface SidebarUser {
+  email?: string | null;
+  name?: string | null;
+  image?: string | null;
+  role?: "super_admin" | "admin";
+  permissions?: string[];
+}
+
+export function AdminSidebar({
+  initialCollapsed = false,
+  initialUser,
+}: {
+  initialCollapsed?: boolean;
+  initialUser?: SidebarUser;
+}) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  // The live session wins once loaded (it picks up avatar/role changes).
+  const user: SidebarUser | undefined = session?.user ?? initialUser;
   const [open, setOpen] = useState(false);
   // Desktop only: collapsed shows an icon rail. The mobile drawer is
   // always full width, so every collapsed style below is `md:`-scoped.
@@ -311,11 +330,11 @@ export function AdminSidebar({ initialCollapsed = false }: { initialCollapsed?: 
   const isActive = (href: string) =>
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 
-  const isSuperAdmin = session?.user?.role === "super_admin";
+  const isSuperAdmin = user?.role === "super_admin";
   const canSee = (item: NavItem) => {
     if (item.superAdminOnly) return isSuperAdmin;
     const section = sectionForPath(item.href);
-    return !section || hasSectionAccess(session?.user, section);
+    return !section || hasSectionAccess(user, section);
   };
 
   // Hidden only on desktop while collapsed; always shown in the drawer.
@@ -413,7 +432,7 @@ export function AdminSidebar({ initialCollapsed = false }: { initialCollapsed?: 
         )}
       >
         <Link href="/admin/account" title="My Account" className="rounded-full">
-          <AdminAvatar url={session?.user?.image} label={session?.user?.name ?? session?.user?.email} />
+          <AdminAvatar url={user?.image} label={user?.name ?? user?.email} />
         </Link>
         <div className={cn("min-w-0 flex-1", whenExpanded)}>
           <Link
@@ -421,9 +440,9 @@ export function AdminSidebar({ initialCollapsed = false }: { initialCollapsed?: 
             title="My Account"
             className="block truncate text-xs font-medium text-ink hover:text-garden-700"
           >
-            {session?.user?.email}
+            {user?.email}
           </Link>
-          {session?.user?.role && <p className="text-[11px] text-ink-soft">{roleLabel(session.user.role)}</p>}
+          {user?.role && <p className="text-[11px] text-ink-soft">{roleLabel(user.role)}</p>}
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/admin/login" })}

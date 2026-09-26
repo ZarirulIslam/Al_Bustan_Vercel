@@ -29,7 +29,7 @@ export default async function AdminLayout({
     <AuthSessionProvider>
       <AdminToastProvider>
         <div className="flex min-h-screen flex-col bg-limestone-100 md:flex-row">
-          <AdminSidebar initialCollapsed={sidebarCollapsed} />
+          <AdminSidebar initialCollapsed={sidebarCollapsed} initialUser={session.user} />
           <main className="flex-1 overflow-y-auto px-5 py-8 sm:px-8 md:px-12 md:py-10">
             <div className="mx-auto w-full max-w-6xl">{children}</div>
           </main>
