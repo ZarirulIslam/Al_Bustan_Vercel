@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { richTextField } from "@/lib/richText/server";
 
 const optionalUrl = z
   .string()
@@ -21,8 +22,8 @@ export const settingsFormSchema = z.object({
   youtubeUrl: optionalUrl,
   seoTitle: z.string().min(1, "SEO title is required."),
   seoDescription: z.string().min(1, "SEO description is required."),
-  companyDescription: z.string().min(1, "Company description is required.").max(500),
-  footerLegalText: z.string().min(1, "Footer text is required.").max(200),
+  companyDescription: richTextField({ required: "Company description is required.", max: 500 }),
+  footerLegalText: richTextField({ required: "Footer text is required.", max: 200 }),
 });
 
 export type SettingsFormValues = z.infer<typeof settingsFormSchema>;

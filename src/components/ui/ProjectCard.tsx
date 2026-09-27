@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Project } from "@/lib/types";
+import { richTextPreview } from "@/lib/richText/shared";
 import { ProjectStatusBadge } from "@/components/ui/ProjectStatusBadge";
 
 export function ProjectCard({ project }: { project: Project }) {
@@ -42,7 +43,7 @@ export function ProjectCard({ project }: { project: Project }) {
           <h3 className="text-xl leading-snug">{project.name}</h3>
           {project.pricingInfo && (
             <span className="shrink-0 text-sm font-semibold text-garden-700">
-              {project.pricingInfo}
+              {richTextPreview(project.pricingInfo)}
             </span>
           )}
         </div>

@@ -7,6 +7,7 @@ import { SiteFaqForm } from "@/components/admin/SiteFaqForm";
 import { deleteSiteFaq, moveSiteFaq, toggleSiteFaqPublished } from "@/app/admin/(dashboard)/faqs/actions";
 import type { SiteFaq } from "@/lib/types";
 import { useAdminAction } from "@/components/admin/AdminToaster";
+import { richTextPreview } from "@/lib/richText/shared";
 
 export function SiteFaqManager({ faqs }: { faqs: SiteFaq[] }) {
   const { run, isPending } = useAdminAction();
@@ -56,7 +57,7 @@ export function SiteFaqManager({ faqs }: { faqs: SiteFaq[] }) {
                   {faq.published ? "Published" : "Hidden"}
                 </button>
               </div>
-              <p className="mt-2 whitespace-pre-line text-sm text-ink-soft">{faq.answer}</p>
+              <p className="mt-2 line-clamp-3 text-sm text-ink-soft">{richTextPreview(faq.answer)}</p>
 
               <div className="mt-4 flex items-center gap-2">
                 <button

@@ -1,5 +1,6 @@
 "use client";
 
+import { MAX_IMAGE_MB } from "@/lib/uploadLimits";
 import { useState } from "react";
 import Image from "next/image";
 import { uploadImageClientSide } from "@/lib/uploadClient";
@@ -12,7 +13,7 @@ export function CoverImageUploadField({
   onUploadingChange,
 }: {
   fieldName: string;
-  subdir: "projects" | "blog" | "settings" | "gallery" | "testimonials";
+  subdir: "projects" | "blog" | "settings" | "gallery" | "testimonials" | "team";
   existingUrl?: string;
   required?: boolean;
   onUploadingChange?: (uploading: boolean) => void;
@@ -76,7 +77,7 @@ export function CoverImageUploadField({
           : required
             ? "Required."
             : "Optional."}{" "}
-        4MB max.
+        {MAX_IMAGE_MB}MB max.
       </p>
     </div>
   );

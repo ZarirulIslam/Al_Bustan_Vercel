@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { richTextField } from "@/lib/richText/server";
 
 export const projectFormSchema = z.object({
   name: z.string().min(2, "Name is required."),
@@ -14,19 +15,19 @@ export const projectFormSchema = z.object({
   }),
   location: z.string().min(1, "Location is required."),
   shortDescription: z.string().min(1, "Short description is required."),
-  fullDescription: z.string().min(1, "Full description is required."),
+  fullDescription: richTextField({ required: "Full description is required." }),
   projectType: z.string().min(1, "Project type is required."),
   totalArea: z.string().min(1, "Total area is required."),
   unitInfo: z.string().min(1, "Unit/plot information is required."),
   timeline: z.string().min(1, "Timeline is required."),
-  features: z.string().optional(),
+  features: richTextField({ max: 3000 }),
   latitude: z.string().optional(),
   longitude: z.string().optional(),
   totalUnits: z.string().optional(),
   availableUnits: z.string().optional(),
   sizesOffered: z.string().optional(),
-  pricingInfo: z.string().optional(),
-  nearbyFacilities: z.string().optional(),
+  pricingInfo: richTextField(),
+  nearbyFacilities: richTextField({ max: 3000 }),
   bedroomOptions: z.string().optional(),
   block: z.string().optional(),
   facing: z.string().optional(),

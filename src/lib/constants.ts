@@ -62,6 +62,7 @@ export const defaultHomepageSettings: HomepageSettings = {
   featuredProjectsSectionEnabled: true,
   valuePropsSectionEnabled: true,
   testimonialsSectionEnabled: true,
+  teamSectionEnabled: true,
   ctaSectionEnabled: true,
   blogSectionEnabled: true,
   introHeading: "A developer that plans for how families really live",
@@ -89,6 +90,13 @@ export const defaultAboutPageSettings: AboutPageSettings = {
   portfolioParagraph:
     "Our first project is Al Bustan Purbachal City, an integrated community in Rupganj, Narayanganj.",
   ctaHeading: "Want to know more about our work?",
+  teamSectionEnabled: true,
+  leaderSectionEnabled: true,
+  leaderHeading: "",
+  leaderMessage: "",
+  leaderName: "",
+  leaderRole: "",
+  leaderPhotoUrl: null,
 };
 
 // Fixed icon set offered in the admin's icon picker for ContentItem

@@ -11,6 +11,7 @@ import { BrochureUploadField } from "@/components/admin/BrochureUploadField";
 import type { Project, ProjectStatus, ProjectCategory } from "@/lib/types";
 import type { ProjectFormState } from "@/lib/admin/projectSchema";
 import { useActionFeedback } from "@/components/admin/AdminToaster";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
 function slugify(value: string) {
   return value
@@ -236,24 +237,24 @@ export function ProjectForm({
         htmlFor="fullDescription"
         error={state.fieldErrors?.fullDescription}
       >
-        <textarea
+        <RichTextEditor
           id="fullDescription"
           name="fullDescription"
-          rows={5}
-          className={inputClass}
           defaultValue={project?.fullDescription}
-          required
+          size="md"
+          invalid={!!state.fieldErrors?.fullDescription}
         />
       </Field>
 
-      <Field label="Features (one per line)" htmlFor="features">
-        <textarea
+      <Field label="Features" htmlFor="features" error={state.fieldErrors?.features}>
+        <RichTextEditor
           id="features"
           name="features"
-          rows={4}
-          className={inputClass}
-          defaultValue={project?.features.join("\n")}
-          placeholder={"[Feature placeholder]\n[Feature placeholder]"}
+          defaultValue={project?.features}
+          size="md"
+          maxLength={3000}
+          placeholder="Use a bulleted list — each bullet shows with a check mark on the project page."
+          invalid={!!state.fieldErrors?.features}
         />
       </Field>
 
@@ -350,24 +351,24 @@ export function ProjectForm({
       </div>
 
       <Field label="Pricing / Payment Information (optional)" htmlFor="pricingInfo">
-        <textarea
+        <RichTextEditor
           id="pricingInfo"
           name="pricingInfo"
-          rows={3}
-          className={inputClass}
-          defaultValue={project?.pricingInfo ?? ""}
+          defaultValue={project?.pricingInfo}
+          size="sm"
           placeholder="Free text — e.g. instalment plans, booking amount. Leave blank if prices aren't finalized yet."
         />
       </Field>
 
-      <Field label="Nearby Facilities (one per line, optional)" htmlFor="nearbyFacilities">
-        <textarea
+      <Field label="Nearby Facilities (optional)" htmlFor="nearbyFacilities" error={state.fieldErrors?.nearbyFacilities}>
+        <RichTextEditor
           id="nearbyFacilities"
           name="nearbyFacilities"
-          rows={4}
-          className={inputClass}
-          defaultValue={project?.nearbyFacilities.join("\n")}
-          placeholder={"e.g. 15km from Kuril Flyover\nNear XYZ University"}
+          defaultValue={project?.nearbyFacilities}
+          size="md"
+          maxLength={3000}
+          placeholder="e.g. a bulleted list: 15 km from Kuril Flyover, near XYZ University…"
+          invalid={!!state.fieldErrors?.nearbyFacilities}
         />
       </Field>
 

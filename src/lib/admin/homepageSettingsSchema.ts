@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { richTextField } from "@/lib/richText/server";
 
 // A hero button's link may point within the site ("/projects") or,
 // less commonly, to an external page — but never to a "javascript:"
@@ -39,13 +40,14 @@ export const homepageSettingsFormSchema = z.object({
   featuredProjectsSectionEnabled: z.string().optional(),
   valuePropsSectionEnabled: z.string().optional(),
   testimonialsSectionEnabled: z.string().optional(),
+  teamSectionEnabled: z.string().optional(),
   ctaSectionEnabled: z.string().optional(),
   blogSectionEnabled: z.string().optional(),
   // introImageUrl is deliberately not here — same convention as
   // settingsFormSchema's logoUrl, read directly from formData in the
   // action so an empty file input keeps the current image.
   introHeading: z.string().min(1, "Required.").max(150),
-  introBody: z.string().min(1, "Required.").max(800),
+  introBody: richTextField({ required: "Required.", max: 800 }),
 });
 
 export type HomepageSettingsFormValues = z.infer<typeof homepageSettingsFormSchema>;

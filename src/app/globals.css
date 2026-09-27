@@ -30,6 +30,166 @@
   }
 }
 
+/* Leadership message heading (About page): whatever the admin italicises
+   in the rich text heading — e.g. "Chairman's *Message*" — becomes the
+   gold display-italic accent. */
+@layer components {
+  .leader-heading {
+    @apply font-display font-normal text-ink;
+  }
+  .leader-heading em,
+  .leader-heading i {
+    @apply italic text-brass;
+  }
+}
+
+/* Formatted text from RichTextEditor — shared by the editor itself and
+   the public <RichText> renderer so both look the same. Size and colour
+   inherit from the wrapper; everything else is relative (em). */
+@layer components {
+  .rich-text > * + * {
+    margin-top: 0.85em;
+  }
+  .rich-text h2,
+  .rich-text h3,
+  .rich-text h4 {
+    @apply font-display text-ink;
+    line-height: 1.25;
+  }
+  .rich-text * + h2,
+  .rich-text * + h3,
+  .rich-text * + h4 {
+    margin-top: 1.4em;
+  }
+  .rich-text h2 {
+    font-size: 1.45em;
+  }
+  .rich-text h3 {
+    font-size: 1.25em;
+  }
+  .rich-text h4 {
+    font-size: 1.1em;
+  }
+  .rich-text strong,
+  .rich-text b {
+    @apply text-ink;
+    font-weight: 600;
+  }
+  .rich-text a {
+    @apply text-garden-700 underline underline-offset-2 hover:text-garden-600;
+  }
+  .rich-text ul {
+    @apply list-disc;
+    padding-left: 1.4em;
+  }
+  .rich-text ol {
+    @apply list-decimal;
+    padding-left: 1.4em;
+  }
+  .rich-text li + li {
+    margin-top: 0.3em;
+  }
+  /* Nested lists (Tab / the indent button in the editor): each level gets
+     its own marker so the hierarchy reads at a glance — bullets go
+     disc → circle → square, numbers go 1. → a. → i. — whichever mix of
+     bullet and numbered levels is used. */
+  .rich-text li > :is(ul, ol) {
+    margin-top: 0.3em;
+  }
+  .rich-text :is(ul, ol) ul {
+    list-style-type: circle;
+  }
+  .rich-text :is(ul, ol) :is(ul, ol) ul {
+    list-style-type: square;
+  }
+  .rich-text :is(ul, ol) ol {
+    list-style-type: lower-alpha;
+  }
+  .rich-text :is(ul, ol) :is(ul, ol) ol {
+    list-style-type: lower-roman;
+  }
+  .rich-text li > p + p {
+    margin-top: 0.3em;
+  }
+  .rich-text blockquote {
+    @apply border-l-4 border-garden-300 italic;
+    padding-left: 1em;
+  }
+  .rich-text hr {
+    @apply border-limestone-300;
+    margin: 2em 0;
+  }
+  .rich-text code {
+    @apply rounded bg-limestone-200 text-ink;
+    padding: 0.1em 0.35em;
+    font-size: 0.9em;
+  }
+  .rich-text img {
+    @apply rounded;
+    max-width: 100%;
+    height: auto;
+  }
+  .rich-text table {
+    @apply w-full border-collapse text-left;
+  }
+  .rich-text th,
+  .rich-text td {
+    @apply border border-limestone-300;
+    padding: 0.4em 0.6em;
+  }
+
+  /* Marker lists for rich text fields that are mostly bullet points
+     (project Features / Nearby Facilities): top-level bullets become a
+     two-column grid with an icon marker instead of a disc. Paragraphs,
+     numbered lists and nested lists keep the normal .rich-text styles. */
+  .rich-marker-list > ul {
+    @apply grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2;
+    list-style: none;
+    padding-left: 0;
+  }
+  .rich-marker-list > ul > li {
+    position: relative;
+    margin-top: 0;
+    padding-left: 1.6em;
+  }
+  .rich-marker-list > ul > li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.3em;
+    width: 14px;
+    height: 14px;
+    background-color: var(--marker-color);
+    -webkit-mask: var(--marker) no-repeat center / contain;
+    mask: var(--marker) no-repeat center / contain;
+  }
+  .rich-marker-check {
+    --marker-color: theme("colors.garden.500");
+    --marker: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M2 7.5L5.5 11L12 3' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+  .rich-marker-ring {
+    --marker-color: theme("colors.sky.dark");
+    --marker: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none'%3E%3Ccircle cx='7' cy='7' r='3.5' stroke='black' stroke-width='1.4'/%3E%3C/svg%3E");
+  }
+
+  /* On dark panels (e.g. the FAQ accordion) links need a light colour. */
+  .rich-text-on-dark :is(h2, h3, h4, strong, b) {
+    color: inherit;
+  }
+  .rich-text-on-dark a {
+    @apply text-brass-light hover:text-white;
+  }
+
+  /* Editor-only: placeholder while the document is a single empty line. */
+  .rich-text-editor {
+    position: relative;
+  }
+  .rich-text-editor[data-placeholder]:has(> p:only-child > br.ProseMirror-trailingBreak:only-child)::before {
+    @apply pointer-events-none absolute text-ink-soft/60;
+    content: attr(data-placeholder);
+  }
+}
+
 @layer utilities {
   .container-content {
     @apply mx-auto w-full max-w-content px-6 md:px-10;

@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { CoverImageUploadField } from "@/components/admin/CoverImageUploadField";
-import { MarkdownEditor } from "@/components/admin/MarkdownEditor";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import type { BlogPost } from "@/lib/types";
 import type { BlogFormState } from "@/lib/admin/blogSchema";
 import { useActionFeedback } from "@/components/admin/AdminToaster";
@@ -193,7 +193,14 @@ export function BlogForm({
       </Field>
 
       <Field label="Content" htmlFor="content" error={state.fieldErrors?.content}>
-        <MarkdownEditor id="content" name="content" defaultValue={post?.content} required />
+        <RichTextEditor
+          id="content"
+          name="content"
+          defaultValue={post?.content}
+          legacyFormat="markdown"
+          size="lg"
+          invalid={!!state.fieldErrors?.content}
+        />
       </Field>
 
       <Field label="Featured Image" htmlFor="featuredImageFile">

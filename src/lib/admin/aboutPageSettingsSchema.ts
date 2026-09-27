@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { richTextField } from "@/lib/richText/server";
 
 // Image URLs (heroImageUrl/overviewImageUrl) are deliberately not in
 // this schema — same convention as settingsFormSchema's logoUrl: read
@@ -9,10 +10,19 @@ export const aboutPageSettingsFormSchema = z.object({
   heroEyebrow: z.string().min(1, "Required.").max(60),
   heroHeading: z.string().min(1, "Required.").max(150),
   heroParagraph: z.string().min(1, "Required.").max(600),
-  overviewParagraph: z.string().min(1, "Required.").max(1500),
-  visionParagraph: z.string().min(1, "Required.").max(600),
-  portfolioParagraph: z.string().min(1, "Required.").max(400),
+  overviewParagraph: richTextField({ required: "Required.", max: 1500 }),
+  visionParagraph: richTextField({ required: "Required.", max: 600 }),
+  portfolioParagraph: richTextField({ required: "Required.", max: 400 }),
   ctaHeading: z.string().min(1, "Required.").max(150),
+  // Checkbox: "on" or absent — interpreted as `=== "on"` in the action.
+  teamSectionEnabled: z.string().optional(),
+  // Leadership message — all rich text; the section is simply hidden
+  // while the message is empty, so none are required.
+  leaderSectionEnabled: z.string().optional(),
+  leaderHeading: richTextField({ max: 80 }),
+  leaderMessage: richTextField({ max: 4000 }),
+  leaderName: richTextField({ max: 100 }),
+  leaderRole: richTextField({ max: 150 }),
 });
 
 export type AboutPageSettingsFormValues = z.infer<typeof aboutPageSettingsFormSchema>;

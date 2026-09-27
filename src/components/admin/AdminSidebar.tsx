@@ -18,6 +18,7 @@ type IconName =
   | "blog"
   | "gallery"
   | "testimonials"
+  | "team"
   | "about"
   | "faqs"
   | "inquiries"
@@ -53,6 +54,7 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
       { label: "Blog", href: "/admin/blog", icon: "blog" },
       { label: "Gallery", href: "/admin/gallery", icon: "gallery" },
       { label: "Testimonials", href: "/admin/testimonials", icon: "testimonials" },
+      { label: "Team", href: "/admin/team", icon: "team" },
       { label: "FAQs", href: "/admin/faqs", icon: "faqs" },
     ],
   },
@@ -156,6 +158,15 @@ function NavIcon({ name }: { name: IconName }) {
             strokeLinecap="round"
             strokeLinejoin="round"
           />
+        </svg>
+      );
+    case "team":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.6" />
+          <path d="M5.5 20a6.5 6.5 0 0 1 13 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <circle cx="5" cy="10" r="2" stroke="currentColor" strokeWidth="1.6" />
+          <circle cx="19" cy="10" r="2" stroke="currentColor" strokeWidth="1.6" />
         </svg>
       );
     case "about":

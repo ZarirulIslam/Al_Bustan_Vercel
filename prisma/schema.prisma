@@ -131,7 +131,7 @@ model Project {
   totalArea        String
   unitInfo         String
   timeline         String
-  features         String[] // native Postgres array — no JSON encode/decode needed
+  features         String   @default("") // rich text HTML (on-site amenities) — bulleted lists render as a check-mark grid
   latitude         Float?
   longitude        Float?
   published        Boolean         @default(false)
@@ -141,7 +141,7 @@ model Project {
   availableUnits   Int? // "Available Plots" or "Available Flats"
   sizesOffered     String? // e.g. "3, 5 & 10 Katha" or "1,200–2,400 sq ft"
   pricingInfo      String? // free text — prices/instalments are rarely final, so this stays prose, not a fixed price field
-  nearbyFacilities String[] // e.g. nearby schools, hospitals, highways — separate from `features` (on-site amenities)
+  nearbyFacilities String   @default("") // rich text HTML — e.g. nearby schools, hospitals, highways; separate from `features` (on-site amenities)
   brochureUrl      String? // PDF
   masterPlanUrl    String? // image
   block            String? // e.g. "Block C" — which block/section of the development
@@ -313,6 +313,29 @@ model Testimonial {
 
   @@index([published])
   @@index([projectId])
+}
+
+// Public-facing team/leadership members — one shared directory, shown
+// on the homepage and/or About page. Each page only decides whether the
+// section is displayed (teamSectionEnabled in its settings singleton);
+// member data is never duplicated per page. Unrelated to SalesEmployee,
+// which is an internal lead-assignment list with no public presence.
+model TeamMember {
+  id          String  @id @default(cuid())
+  name        String
+  designation String
+  // Rich text (HTML, sanitized on save and on render — see
+  // src/lib/richText/server.ts).
+  shortTitle  String  @default("")
+  bio         String  @default("")
+  photoUrl    String?
+  order       Int     @default(0)
+  published   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([published])
 }
 
 model BlogCategory {
@@ -580,6 +603,7 @@ model HomepageSettings {
   featuredProjectsSectionEnabled Boolean @default(true)
   valuePropsSectionEnabled       Boolean @default(true)
   testimonialsSectionEnabled     Boolean @default(true)
+  teamSectionEnabled             Boolean @default(true)
   ctaSectionEnabled              Boolean @default(true)
   blogSectionEnabled             Boolean @default(true)
 
@@ -670,6 +694,22 @@ model AboutPageSettings {
   portfolioParagraph String @default("Our first project is Al Bustan Purbachal City, an integrated community in Rupganj, Narayanganj.")
 
   ctaHeading String @default("Want to know more about our work?")
+
+  // Show/hide for the "Our team" section (members come from the shared
+  // TeamMember directory, managed at /admin/team). The homepage has its
+  // own independent toggle, HomepageSettings.teamSectionEnabled.
+  teamSectionEnabled Boolean @default(true)
+
+  // Leadership message (Chairman / MD — the title is whatever the admin
+  // types in the heading and role). Every text field is rich text (HTML);
+  // italic words in the heading render as the gold accent. The section
+  // is also hidden while the message is empty.
+  leaderSectionEnabled Boolean @default(true)
+  leaderHeading        String  @default("")
+  leaderMessage        String  @default("")
+  leaderName           String  @default("")
+  leaderRole           String  @default("")
+  leaderPhotoUrl       String?
 
   updatedAt DateTime @updatedAt
 }

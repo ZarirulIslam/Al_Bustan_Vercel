@@ -14,7 +14,10 @@ import { getSiteSettings } from "@/lib/data/settings";
 import { getPublishedHeroSlides } from "@/lib/data/hero";
 import { getHomepageSettings } from "@/lib/data/homepageSettings";
 import { getPublishedTestimonials } from "@/lib/data/testimonials";
+import { getPublishedTeamMembers } from "@/lib/data/teamMembers";
+import { TeamSection } from "@/components/ui/TeamSection";
 import { getPublishedContentItems } from "@/lib/data/contentItems";
+import { RichText } from "@/components/ui/RichText";
 
 export const revalidate = 0;
 
@@ -86,6 +89,7 @@ export default async function HomePage() {
   const settings = await getSiteSettings();
   const heroSlides = await getPublishedHeroSlides();
   const testimonials = await getPublishedTestimonials();
+  const teamMembers = homepageSettings.teamSectionEnabled ? await getPublishedTeamMembers() : [];
   const [developItems, valuePropItems] = await Promise.all([
     getPublishedContentItems("homepage_develop"),
     getPublishedContentItems("homepage_value_prop"),
@@ -182,7 +186,7 @@ export default async function HomePage() {
             <div>
               <Eyebrow>About Us</Eyebrow>
               <h2 className="mt-2 max-w-md text-3xl md:text-4xl">{homepageSettings.introHeading}</h2>
-              <p className="mt-5 max-w-prose text-base text-ink-soft">{homepageSettings.introBody}</p>
+              <RichText html={homepageSettings.introBody} className="mt-5 max-w-prose text-base text-ink-soft" />
               <div className="mt-7">
                 <Button href="/about" variant="ghost">
                   About Us
@@ -314,6 +318,9 @@ export default async function HomePage() {
         </Section>
       )}
 
+      {/* Meet our team — admin-managed at /admin/team; hidden if none are published */}
+      {homepageSettings.teamSectionEnabled && teamMembers.length > 0 && <TeamSection members={teamMembers} />}
+
       {/* Customer testimonials — admin-managed at /admin/testimonials; hidden if none are published.
           Cards float over the bottom edge of a full-bleed photo, bridging into the
           section below, rather than sitting in a plain card grid. */}
@@ -356,7 +363,7 @@ export default async function HomePage() {
                   >
                     &ldquo;
                   </span>
-                  <p className="-mt-5 text-base text-ink-soft">{testimonial.text}</p>
+                  <RichText html={testimonial.text} className="-mt-5 text-base text-ink-soft" />
                   <div className="mt-6 flex items-center gap-3">
                     {testimonial.photoUrl ? (
                       <div className="relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-full ring-2 ring-garden-100">

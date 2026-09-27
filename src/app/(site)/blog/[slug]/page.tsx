@@ -2,13 +2,11 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { Container } from "@/components/ui/Container";
 import { Section } from "@/components/ui/Section";
 import { BlogCard } from "@/components/ui/BlogCard";
-import { proseMarkdownComponents } from "@/components/ui/markdownComponents";
 import { getPostBySlug, getRelatedPosts } from "@/lib/data/blog";
+import { RichText } from "@/components/ui/RichText";
 
 export const revalidate = 0;
 
@@ -88,9 +86,7 @@ export default async function BlogPostPage({
           </div>
 
           <div className="mx-auto mt-10 max-w-prose">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={proseMarkdownComponents}>
-              {post.content}
-            </ReactMarkdown>
+            <RichText html={post.content} legacyFormat="markdown" className="text-lg text-ink-soft" />
           </div>
         </Container>
       </Section>

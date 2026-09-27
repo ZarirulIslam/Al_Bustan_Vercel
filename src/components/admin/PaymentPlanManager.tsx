@@ -7,6 +7,7 @@ import { PaymentPlanForm } from "@/components/admin/PaymentPlanForm";
 import { deletePaymentPlan, togglePaymentPlanEnabled } from "@/app/admin/(dashboard)/projects/actions";
 import type { PaymentPlan } from "@/lib/types";
 import { useAdminAction } from "@/components/admin/AdminToaster";
+import { richTextPreview } from "@/lib/richText/shared";
 
 export function PaymentPlanManager({ projectId, plans }: { projectId: string; plans: PaymentPlan[] }) {
   const { run, isPending } = useAdminAction();
@@ -79,10 +80,10 @@ export function PaymentPlanManager({ projectId, plans }: { projectId: string; pl
               </dl>
 
               {plan.installmentInfo && (
-                <p className="mt-3 whitespace-pre-line text-sm text-ink-soft">{plan.installmentInfo}</p>
+                <p className="mt-3 line-clamp-3 text-sm text-ink-soft">{richTextPreview(plan.installmentInfo)}</p>
               )}
               {plan.description && (
-                <p className="mt-2 whitespace-pre-line text-xs text-ink-soft">{plan.description}</p>
+                <p className="mt-2 line-clamp-2 text-xs text-ink-soft">{richTextPreview(plan.description)}</p>
               )}
 
               <div className="mt-4 flex justify-end gap-2">

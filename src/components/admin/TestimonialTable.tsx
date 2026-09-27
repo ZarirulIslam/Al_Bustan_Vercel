@@ -10,6 +10,7 @@ import {
   toggleTestimonialPublished,
   moveTestimonial,
 } from "@/app/admin/(dashboard)/testimonials/actions";
+import { richTextPreview } from "@/lib/richText/shared";
 
 function initials(name: string) {
   return name
@@ -93,7 +94,7 @@ function TestimonialRow({
           </button>
         </div>
 
-        <p className="mt-3 text-sm text-ink-soft">&ldquo;{testimonial.text}&rdquo;</p>
+        <p className="mt-3 line-clamp-4 text-sm text-ink-soft">&ldquo;{richTextPreview(testimonial.text)}&rdquo;</p>
 
         <div className="mt-4 flex justify-end gap-2 border-t border-limestone-300 pt-4">
           <Button href={`/admin/testimonials/${testimonial.id}/edit`} variant="ghost" size="sm">

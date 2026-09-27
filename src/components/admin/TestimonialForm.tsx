@@ -7,6 +7,7 @@ import { CoverImageUploadField } from "@/components/admin/CoverImageUploadField"
 import type { Testimonial } from "@/lib/types";
 import type { TestimonialFormState } from "@/lib/admin/testimonialSchema";
 import { useActionFeedback } from "@/components/admin/AdminToaster";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -103,14 +104,13 @@ export function TestimonialForm({
       </div>
 
       <Field label="Testimonial Text" htmlFor="text" error={state.fieldErrors?.text}>
-        <textarea
+        <RichTextEditor
           id="text"
           name="text"
-          rows={5}
-          className={inputClass}
           defaultValue={testimonial?.text}
+          size="sm"
           placeholder="What the customer said…"
-          required
+          invalid={!!state.fieldErrors?.text}
         />
       </Field>
 

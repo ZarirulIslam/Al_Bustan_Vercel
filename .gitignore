@@ -28,3 +28,6 @@ next-env.d.ts
 # uploaded admin images (kept out of git; not needed to run the app)
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# claude code (local settings)
+.claude/settings.local.json

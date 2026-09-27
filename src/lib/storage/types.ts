@@ -1,3 +1,5 @@
+import { MAX_DOCUMENT_BYTES, MAX_DOCUMENT_MB, MAX_IMAGE_BYTES, MAX_IMAGE_MB } from "@/lib/uploadLimits";
+
 // A storage provider only needs to do one thing: take a File and a
 // subdirectory/category, persist it somewhere, and return a public
 // URL. Every CMS server action (project images, and blog/settings
@@ -23,20 +25,16 @@ export class UnsupportedDocumentTypeError extends Error {}
 export class DocumentTooLargeError extends Error {}
 
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-// Vercel Serverless Functions (which Next.js Server Actions run as
-// there) enforce a hard request-body ceiling of roughly 4.5MB,
-// independent of the bodySizeLimit set in next.config.mjs. A single
-// admin form submission can include a cover image plus several
-// gallery images in one request, so each file is kept well under
-// that ceiling to leave headroom for multiple files in one submit.
-export const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4MB per image
+// Limits live in src/lib/uploadLimits.ts (shared with the browser-side
+// check); re-exported here for existing server-side imports.
+export { MAX_IMAGE_BYTES, MAX_DOCUMENT_BYTES } from "@/lib/uploadLimits";
 
 export function validateImageFile(file: File) {
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
     throw new UnsupportedImageTypeError("Unsupported image type. Use JPEG, PNG, WebP, or GIF.");
   }
   if (file.size > MAX_IMAGE_BYTES) {
-    throw new ImageTooLargeError("Image is too large (4MB max).");
+    throw new ImageTooLargeError(`Image is too large (${MAX_IMAGE_MB}MB max).`);
   }
 }
 
@@ -45,13 +43,12 @@ export function validateImageFile(file: File) {
 // allowed type/size. Kept generous since a brochure is one file per
 // project, uploaded rarely, unlike the multi-image project forms.
 export const ALLOWED_DOCUMENT_TYPES = ["application/pdf"];
-export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024; // 10MB
 
 export function validateDocumentFile(file: File) {
   if (!ALLOWED_DOCUMENT_TYPES.includes(file.type)) {
     throw new UnsupportedDocumentTypeError("Unsupported file type. Use PDF.");
   }
   if (file.size > MAX_DOCUMENT_BYTES) {
-    throw new DocumentTooLargeError("File is too large (10MB max).");
+    throw new DocumentTooLargeError(`File is too large (${MAX_DOCUMENT_MB}MB max).`);
   }
 }

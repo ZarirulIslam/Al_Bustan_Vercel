@@ -15,6 +15,8 @@ import { getProjectBySlug } from "@/lib/data/projects";
 import { getInventoryForProject } from "@/lib/data/inventory";
 import { getEnabledPaymentPlansForProject } from "@/lib/data/paymentPlans";
 import { getPublishedFaqsForProject } from "@/lib/data/projectFaqs";
+import { RichText } from "@/components/ui/RichText";
+import { isEmptyRichHtml } from "@/lib/richText/shared";
 
 export const revalidate = 0;
 
@@ -114,64 +116,34 @@ export default async function ProjectDetailPage({
         <Container className="grid grid-cols-1 gap-12 lg:grid-cols-[1.6fr_1fr]">
           <div>
             <h2 className="text-2xl md:text-3xl">Overview</h2>
-            <p className="mt-4 max-w-prose text-base text-ink-soft">
-              {project.fullDescription}
-            </p>
+            <RichText html={project.fullDescription} className="mt-4 max-w-prose text-base text-ink-soft" />
 
-            <h2 className="mt-12 text-2xl md:text-3xl">Features</h2>
-            <ul className="mt-4 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
-              {project.features.map((feature) => (
-                <li key={feature} className="flex items-start gap-2.5 text-base text-ink-soft">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 14 14"
-                    fill="none"
-                    aria-hidden="true"
-                    className="mt-0.5 flex-shrink-0 text-garden-500"
-                  >
-                    <path
-                      d="M2 7.5L5.5 11L12 3"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  {feature}
-                </li>
-              ))}
-            </ul>
+            {/* Rich text — top-level bullets keep the check-mark / ring grid
+                (.rich-marker-list in globals.css). */}
+            {!isEmptyRichHtml(project.features) && (
+              <>
+                <h2 className="mt-12 text-2xl md:text-3xl">Features</h2>
+                <RichText
+                  html={project.features}
+                  className="rich-marker-list rich-marker-check mt-4 text-base text-ink-soft"
+                />
+              </>
+            )}
 
-            {project.nearbyFacilities.length > 0 && (
+            {!isEmptyRichHtml(project.nearbyFacilities) && (
               <>
                 <h2 className="mt-12 text-2xl md:text-3xl">Nearby Facilities</h2>
-                <ul className="mt-4 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
-                  {project.nearbyFacilities.map((item) => (
-                    <li key={item} className="flex items-start gap-2.5 text-base text-ink-soft">
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 14 14"
-                        fill="none"
-                        aria-hidden="true"
-                        className="mt-0.5 flex-shrink-0 text-sky-dark"
-                      >
-                        <circle cx="7" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.4" />
-                      </svg>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
+                <RichText
+                  html={project.nearbyFacilities}
+                  className="rich-marker-list rich-marker-ring mt-4 text-base text-ink-soft"
+                />
               </>
             )}
 
             {project.pricingInfo && (
               <>
                 <h2 className="mt-12 text-2xl md:text-3xl">Pricing &amp; Payment</h2>
-                <p className="mt-4 max-w-prose whitespace-pre-line text-base text-ink-soft">
-                  {project.pricingInfo}
-                </p>
+                <RichText html={project.pricingInfo} className="mt-4 max-w-prose text-base text-ink-soft" />
               </>
             )}
 

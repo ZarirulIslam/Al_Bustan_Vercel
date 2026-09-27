@@ -14,6 +14,13 @@ function mapAboutPageSettings(row: PrismaAboutPageSettings): AboutPageSettings {
     visionParagraph: row.visionParagraph,
     portfolioParagraph: row.portfolioParagraph,
     ctaHeading: row.ctaHeading,
+    teamSectionEnabled: row.teamSectionEnabled,
+    leaderSectionEnabled: row.leaderSectionEnabled,
+    leaderHeading: row.leaderHeading,
+    leaderMessage: row.leaderMessage,
+    leaderName: row.leaderName,
+    leaderRole: row.leaderRole,
+    leaderPhotoUrl: row.leaderPhotoUrl,
   };
 }
 

@@ -1,5 +1,6 @@
 import type { ProjectFaq } from "@/lib/types";
 import { FaqAccordion } from "@/components/ui/FaqAccordion";
+import { RichText } from "@/components/ui/RichText";
 
 // Read-only display shown on the public project detail page — admin
 // management lives at /admin/projects/[id]/edit (see ProjectFaqManager).
@@ -10,5 +11,12 @@ import { FaqAccordion } from "@/components/ui/FaqAccordion";
 export function ProjectFaqList({ faqs }: { faqs: ProjectFaq[] }) {
   if (faqs.length === 0) return null;
 
-  return <FaqAccordion items={faqs} />;
+  return (
+    <FaqAccordion
+      items={faqs.map((faq) => ({
+        question: faq.question,
+        answer: <RichText html={faq.answer} className="rich-text-on-dark" />,
+      }))}
+    />
+  );
 }

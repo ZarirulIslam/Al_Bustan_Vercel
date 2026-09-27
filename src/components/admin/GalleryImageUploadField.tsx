@@ -1,5 +1,6 @@
 "use client";
 
+import { MAX_IMAGE_MB } from "@/lib/uploadLimits";
 import { useState } from "react";
 import Image from "next/image";
 import { uploadImageClientSide } from "@/lib/uploadClient";
@@ -127,7 +128,7 @@ export function GalleryImageUploadField({
       )}
 
       <p className="mt-1.5 text-xs text-ink-soft">
-        4MB max per image. Each image uploads directly on selection.
+        {MAX_IMAGE_MB}MB max per image. Each image uploads directly on selection.
       </p>
     </div>
   );

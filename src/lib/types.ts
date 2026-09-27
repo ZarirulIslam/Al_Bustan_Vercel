@@ -25,14 +25,16 @@ export interface Project {
   totalArea: string;
   unitInfo: string;
   timeline: string;
-  features: string[];
+  // Rich text HTML — bulleted lists render as a check-mark grid.
+  features: string;
   latitude: number | null;
   longitude: number | null;
   totalUnits: number | null;
   availableUnits: number | null;
   sizesOffered: string | null;
   pricingInfo: string | null;
-  nearbyFacilities: string[];
+  // Rich text HTML, like `features`.
+  nearbyFacilities: string;
   brochureUrl: string | null;
   masterPlanUrl: string | null;
   bedroomOptions: string | null;
@@ -225,6 +227,7 @@ export interface HomepageSettings {
   featuredProjectsSectionEnabled: boolean;
   valuePropsSectionEnabled: boolean;
   testimonialsSectionEnabled: boolean;
+  teamSectionEnabled: boolean;
   ctaSectionEnabled: boolean;
   blogSectionEnabled: boolean;
   introHeading: string;
@@ -280,6 +283,29 @@ export interface AboutPageSettings {
   visionParagraph: string;
   portfolioParagraph: string;
   ctaHeading: string;
+  teamSectionEnabled: boolean;
+  // Leadership (Chairman / MD) message — all rich text HTML.
+  leaderSectionEnabled: boolean;
+  leaderHeading: string;
+  leaderMessage: string;
+  leaderName: string;
+  leaderRole: string;
+  leaderPhotoUrl: string | null;
+}
+
+// Public team/leadership member — see prisma/schema.prisma's TeamMember.
+export interface TeamMember {
+  id: string;
+  name: string;
+  designation: string;
+  // Rich text HTML (render with <RichText>).
+  shortTitle: string;
+  bio: string;
+  photoUrl: string | null;
+  order: number;
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Testimonial {

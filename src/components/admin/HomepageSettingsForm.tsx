@@ -7,6 +7,7 @@ import { CoverImageUploadField } from "@/components/admin/CoverImageUploadField"
 import type { HomepageSettings } from "@/lib/types";
 import type { HomepageSettingsFormState } from "@/lib/admin/homepageSettingsSchema";
 import { useActionFeedback } from "@/components/admin/AdminToaster";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
 function SubmitButton({ disabledExtra }: { disabledExtra: boolean }) {
   const { pending } = useFormStatus();
@@ -268,13 +269,12 @@ export function HomepageSettingsForm({
             <label htmlFor="introBody" className="text-sm text-ink">
               Body text
             </label>
-            <textarea
+            <RichTextEditor
               id="introBody"
               name="introBody"
-              rows={4}
-              className={inputClass}
               defaultValue={settings.introBody}
-              required
+              size="md"
+              maxLength={800}
             />
           </div>
           <div className="space-y-2">
@@ -324,6 +324,12 @@ export function HomepageSettingsForm({
             label="Customer testimonials"
             description="Also hidden automatically if no testimonials are published. Manage testimonials from the Testimonials section."
             defaultChecked={settings.testimonialsSectionEnabled}
+          />
+          <Toggle
+            name="teamSectionEnabled"
+            label="Meet our team"
+            description="Also hidden automatically if no team members are published. Manage members from the Team section."
+            defaultChecked={settings.teamSectionEnabled}
           />
           <Toggle
             name="ctaSectionEnabled"

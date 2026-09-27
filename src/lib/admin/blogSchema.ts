@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { richTextField } from "@/lib/richText/server";
 
 export const blogFormSchema = z.object({
   title: z.string().min(2, "Title is required."),
@@ -7,7 +8,7 @@ export const blogFormSchema = z.object({
     .min(2, "Slug is required.")
     .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens only."),
   excerpt: z.string().min(1, "Excerpt is required."),
-  content: z.string().min(1, "Content is required."),
+  content: richTextField({ required: "Content is required." }),
   author: z.string().min(1, "Author is required."),
   categoryId: z.string().min(1, "Choose or create a category."),
   newCategoryName: z.string().optional(),

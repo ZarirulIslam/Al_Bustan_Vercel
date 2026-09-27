@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/Button";
 import { ContentIcon } from "@/components/ui/ContentIcon";
 import { getAboutPageSettings } from "@/lib/data/aboutPageSettings";
 import { getPublishedContentItems } from "@/lib/data/contentItems";
+import { RichText } from "@/components/ui/RichText";
+import { TeamSection } from "@/components/ui/TeamSection";
+import { LeadershipMessage } from "@/components/ui/LeadershipMessage";
+import { isEmptyRichHtml } from "@/lib/richText/shared";
+import { getPublishedTeamMembers } from "@/lib/data/teamMembers";
 
 export const metadata: Metadata = {
   title: "About Us",
@@ -20,12 +25,13 @@ const coreValueToneStyles = {
 };
 
 export default async function AboutPage() {
-  const [settings, whatWeDo, missionPoints, coreValues, approachSteps] = await Promise.all([
+  const [settings, whatWeDo, missionPoints, coreValues, approachSteps, teamMembers] = await Promise.all([
     getAboutPageSettings(),
     getPublishedContentItems("about_what_we_do"),
     getPublishedContentItems("about_mission_points"),
     getPublishedContentItems("about_core_values"),
     getPublishedContentItems("about_approach_steps"),
+    getPublishedTeamMembers(),
   ]);
 
   return (
@@ -68,7 +74,7 @@ export default async function AboutPage() {
           </div>
           <div>
             <h2 className="text-3xl md:text-4xl">Company overview</h2>
-            <p className="mt-5 max-w-prose text-base text-ink-soft">{settings.overviewParagraph}</p>
+            <RichText html={settings.overviewParagraph} className="mt-5 max-w-prose text-base text-ink-soft" />
 
             {whatWeDo.length > 0 && (
               <>
@@ -91,7 +97,7 @@ export default async function AboutPage() {
         <Container className="grid grid-cols-1 gap-8 md:grid-cols-2">
           <div className="rounded-lg border border-limestone-300 bg-white p-8">
             <h2 className="text-2xl">Vision</h2>
-            <p className="mt-4 text-base text-ink-soft">{settings.visionParagraph}</p>
+            <RichText html={settings.visionParagraph} className="mt-4 text-base text-ink-soft" />
           </div>
           {missionPoints.length > 0 && (
             <div className="rounded-lg border border-limestone-300 bg-white p-8">
@@ -110,6 +116,17 @@ export default async function AboutPage() {
           )}
         </Container>
       </Section>
+
+      {/* Leadership (Chairman / MD) message — hidden while the message is empty */}
+      {settings.leaderSectionEnabled && !isEmptyRichHtml(settings.leaderMessage) && (
+        <LeadershipMessage
+          heading={settings.leaderHeading}
+          message={settings.leaderMessage}
+          name={settings.leaderName}
+          role={settings.leaderRole}
+          photoUrl={settings.leaderPhotoUrl}
+        />
+      )}
 
       {/* Core values */}
       {coreValues.length > 0 && (
@@ -151,12 +168,15 @@ export default async function AboutPage() {
         </Section>
       )}
 
+      {/* Our team — admin-managed at /admin/team; hidden if none are published */}
+      {settings.teamSectionEnabled && teamMembers.length > 0 && <TeamSection members={teamMembers} />}
+
       {/* Our portfolio */}
       <Section>
         <Container className="flex flex-col items-start justify-between gap-6 rounded-lg border border-limestone-300 bg-limestone-100 p-8 md:flex-row md:items-center">
           <div>
             <h2 className="text-xl">Our portfolio</h2>
-            <p className="mt-2 max-w-prose text-base text-ink-soft">{settings.portfolioParagraph}</p>
+            <RichText html={settings.portfolioParagraph} className="mt-2 max-w-prose text-base text-ink-soft" />
           </div>
           <Button href="/projects" variant="primary">
             View Our Projects

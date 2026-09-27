@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { richTextField } from "@/lib/richText/server";
 
 export const siteFaqFormSchema = z.object({
   question: z.string().min(1, "Question is required."),
-  answer: z.string().min(1, "Answer is required."),
+  answer: richTextField({ required: "Answer is required." }),
 });
 
 export type SiteFaqFormValues = z.infer<typeof siteFaqFormSchema>;

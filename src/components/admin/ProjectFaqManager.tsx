@@ -11,6 +11,7 @@ import {
 } from "@/app/admin/(dashboard)/projects/actions";
 import type { ProjectFaq } from "@/lib/types";
 import { useAdminAction } from "@/components/admin/AdminToaster";
+import { richTextPreview } from "@/lib/richText/shared";
 
 export function ProjectFaqManager({ projectId, faqs }: { projectId: string; faqs: ProjectFaq[] }) {
   const { run, isPending } = useAdminAction();
@@ -66,7 +67,7 @@ export function ProjectFaqManager({ projectId, faqs }: { projectId: string; faqs
                   {faq.published ? "Published" : "Hidden"}
                 </button>
               </div>
-              <p className="mt-2 whitespace-pre-line text-sm text-ink-soft">{faq.answer}</p>
+              <p className="mt-2 line-clamp-3 text-sm text-ink-soft">{richTextPreview(faq.answer)}</p>
 
               <div className="mt-4 flex items-center gap-2">
                 <button

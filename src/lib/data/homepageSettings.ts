@@ -27,6 +27,7 @@ function mapHomepageSettings(row: PrismaHomepageSettings): HomepageSettings {
     featuredProjectsSectionEnabled: row.featuredProjectsSectionEnabled,
     valuePropsSectionEnabled: row.valuePropsSectionEnabled,
     testimonialsSectionEnabled: row.testimonialsSectionEnabled,
+    teamSectionEnabled: row.teamSectionEnabled,
     ctaSectionEnabled: row.ctaSectionEnabled,
     blogSectionEnabled: row.blogSectionEnabled,
     introHeading: row.introHeading,

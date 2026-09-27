@@ -39,18 +39,6 @@ async function requireAdmin() {
   await requireSectionAccess("projects");
 }
 
-function parseFeatures(raw: string | undefined): string[] {
-  if (!raw) return [];
-  return raw
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function parseNearbyFacilities(raw: string | undefined): string[] {
-  return parseFeatures(raw);
-}
-
 function isPlausibleImageUrl(value: string): boolean {
   return value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/uploads/");
 }
@@ -120,14 +108,14 @@ export async function createProject(
       totalArea: data.totalArea,
       unitInfo: data.unitInfo,
       timeline: data.timeline,
-      features: parseFeatures(data.features),
+      features: data.features,
       latitude: data.latitude ? Number(data.latitude) : null,
       longitude: data.longitude ? Number(data.longitude) : null,
       totalUnits: data.totalUnits ? Number(data.totalUnits) : null,
       availableUnits: data.availableUnits ? Number(data.availableUnits) : null,
       sizesOffered: data.sizesOffered || null,
       pricingInfo: data.pricingInfo || null,
-      nearbyFacilities: parseNearbyFacilities(data.nearbyFacilities),
+      nearbyFacilities: data.nearbyFacilities,
       bedroomOptions: data.category === "flat" ? data.bedroomOptions || null : null,
       block: data.block || null,
       facing: data.facing || null,
@@ -241,14 +229,14 @@ export async function updateProject(
         totalArea: data.totalArea,
         unitInfo: data.unitInfo,
         timeline: data.timeline,
-        features: parseFeatures(data.features),
+        features: data.features,
         latitude: data.latitude ? Number(data.latitude) : null,
         longitude: data.longitude ? Number(data.longitude) : null,
         totalUnits: data.totalUnits ? Number(data.totalUnits) : null,
         availableUnits: data.availableUnits ? Number(data.availableUnits) : null,
         sizesOffered: data.sizesOffered || null,
         pricingInfo: data.pricingInfo || null,
-        nearbyFacilities: parseNearbyFacilities(data.nearbyFacilities),
+        nearbyFacilities: data.nearbyFacilities,
         bedroomOptions: data.category === "flat" ? data.bedroomOptions || null : null,
         block: data.block || null,
         facing: data.facing || null,

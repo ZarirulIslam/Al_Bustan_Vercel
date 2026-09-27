@@ -1,11 +1,9 @@
 "use client";
 
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowserClient";
+import { MAX_DOCUMENT_BYTES, MAX_DOCUMENT_MB, MAX_IMAGE_BYTES, MAX_IMAGE_MB } from "@/lib/uploadLimits";
 
-const MAX_CLIENT_SIDE_IMAGE_BYTES = 4 * 1024 * 1024; // 4MB — see src/lib/storage/types.ts
-const MAX_CLIENT_SIDE_DOCUMENT_BYTES = 10 * 1024 * 1024; // 10MB — brochures
-
-type UploadSubdir = "projects" | "blog" | "settings" | "gallery" | "brochures" | "hero" | "testimonials" | "avatars";
+type UploadSubdir = "projects" | "blog" | "settings" | "gallery" | "brochures" | "hero" | "testimonials" | "team" | "avatars";
 
 // NOTE: this client-side check is a fast, friendly first line of
 // feedback only — it is not a security boundary (nothing stops a
@@ -84,8 +82,8 @@ export async function uploadImageClientSide(
   file: File,
   subdir: Exclude<UploadSubdir, "brochures">
 ): Promise<string> {
-  if (file.size > MAX_CLIENT_SIDE_IMAGE_BYTES) {
-    throw new ClientUploadError("Image is too large (4MB max).");
+  if (file.size > MAX_IMAGE_BYTES) {
+    throw new ClientUploadError(`Image is too large (${MAX_IMAGE_MB}MB max).`);
   }
   return uploadClientSide(file, subdir);
 }
@@ -94,8 +92,8 @@ export async function uploadDocumentClientSide(file: File): Promise<string> {
   if (file.type !== "application/pdf") {
     throw new ClientUploadError("Unsupported file type. Use PDF.");
   }
-  if (file.size > MAX_CLIENT_SIDE_DOCUMENT_BYTES) {
-    throw new ClientUploadError("File is too large (10MB max).");
+  if (file.size > MAX_DOCUMENT_BYTES) {
+    throw new ClientUploadError(`File is too large (${MAX_DOCUMENT_MB}MB max).`);
   }
   return uploadClientSide(file, "brochures");
 }

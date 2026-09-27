@@ -20,7 +20,7 @@ export default async function AdminAboutPage() {
       <div className="border-b border-limestone-300 pb-6">
         <h1 className="text-3xl">About Page</h1>
         <p className="mt-1.5 text-sm text-ink-soft">
-          Edit every section of the public About page — the header, company overview, vision,
+          Edit every section of the public About page — the header, company overview, vision, leadership message,
           mission, core values, approach and closing banner.
         </p>
       </div>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { CoverImageUploadField } from "@/components/admin/CoverImageUploadField";
 import type { SiteSettings } from "@/lib/types";
 import type { SettingsFormState } from "@/lib/admin/settingsSchema";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { useActionFeedback } from "@/components/admin/AdminToaster";
 
 function SubmitButton({ disabledExtra }: { disabledExtra: boolean }) {
@@ -181,22 +182,23 @@ export function SettingsForm({
             htmlFor="companyDescription"
             error={state.fieldErrors?.companyDescription}
           >
-            <textarea
+            <RichTextEditor
               id="companyDescription"
               name="companyDescription"
-              rows={3}
-              className={inputClass}
               defaultValue={settings.companyDescription}
-              required
+              size="sm"
+              maxLength={500}
+              invalid={!!state.fieldErrors?.companyDescription}
             />
           </Field>
           <Field label="Legal / Copyright Line" htmlFor="footerLegalText" error={state.fieldErrors?.footerLegalText}>
-            <input
+            <RichTextEditor
               id="footerLegalText"
               name="footerLegalText"
-              className={inputClass}
               defaultValue={settings.footerLegalText}
-              required
+              size="sm"
+              maxLength={200}
+              invalid={!!state.fieldErrors?.footerLegalText}
             />
           </Field>
         </div>

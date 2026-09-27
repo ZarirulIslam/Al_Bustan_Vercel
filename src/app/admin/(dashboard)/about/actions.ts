@@ -50,6 +50,8 @@ export async function updateAboutPageSettings(
   const newHeroImageUrl = isPlausibleImageUrl(rawHeroImageUrl) ? rawHeroImageUrl : undefined;
   const rawOverviewImageUrl = String(formData.get("overviewImageUrl") || "");
   const newOverviewImageUrl = isPlausibleImageUrl(rawOverviewImageUrl) ? rawOverviewImageUrl : undefined;
+  const rawLeaderPhotoUrl = String(formData.get("leaderPhotoUrl") || "");
+  const newLeaderPhotoUrl = isPlausibleImageUrl(rawLeaderPhotoUrl) ? rawLeaderPhotoUrl : undefined;
 
   const fields = {
     heroEyebrow: data.heroEyebrow,
@@ -59,6 +61,13 @@ export async function updateAboutPageSettings(
     visionParagraph: data.visionParagraph,
     portfolioParagraph: data.portfolioParagraph,
     ctaHeading: data.ctaHeading,
+    teamSectionEnabled: data.teamSectionEnabled === "on",
+    leaderSectionEnabled: data.leaderSectionEnabled === "on",
+    leaderHeading: data.leaderHeading,
+    leaderMessage: data.leaderMessage,
+    leaderName: data.leaderName,
+    leaderRole: data.leaderRole,
+    ...(newLeaderPhotoUrl ? { leaderPhotoUrl: newLeaderPhotoUrl } : {}),
     ...(newHeroImageUrl ? { heroImageUrl: newHeroImageUrl } : {}),
     ...(newOverviewImageUrl ? { overviewImageUrl: newOverviewImageUrl } : {}),
   };
@@ -74,6 +83,9 @@ export async function updateAboutPageSettings(
   }
   if (newOverviewImageUrl && existing?.overviewImageUrl && existing.overviewImageUrl !== newOverviewImageUrl) {
     await deleteImage(existing.overviewImageUrl);
+  }
+  if (newLeaderPhotoUrl && existing?.leaderPhotoUrl && existing.leaderPhotoUrl !== newLeaderPhotoUrl) {
+    await deleteImage(existing.leaderPhotoUrl);
   }
 
   await logActivity({

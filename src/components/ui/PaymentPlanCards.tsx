@@ -1,4 +1,5 @@
 import type { PaymentPlan } from "@/lib/types";
+import { RichText } from "@/components/ui/RichText";
 
 // Read-only display shown on the public project detail page — admin
 // management lives at /admin/projects/[id]/edit (see PaymentPlanManager).
@@ -31,10 +32,10 @@ export function PaymentPlanCards({ plans }: { plans: PaymentPlan[] }) {
           )}
 
           {plan.installmentInfo && (
-            <p className="mt-4 whitespace-pre-line text-sm text-ink-soft">{plan.installmentInfo}</p>
+            <RichText html={plan.installmentInfo} className="mt-4 text-sm text-ink-soft" />
           )}
           {plan.description && (
-            <p className="mt-3 whitespace-pre-line text-xs text-ink-soft">{plan.description}</p>
+            <RichText html={plan.description} className="mt-3 text-xs text-ink-soft" />
           )}
         </div>
       ))}

@@ -72,6 +72,7 @@ export async function updateHomepageSettings(
     featuredProjectsSectionEnabled: data.featuredProjectsSectionEnabled === "on",
     valuePropsSectionEnabled: data.valuePropsSectionEnabled === "on",
     testimonialsSectionEnabled: data.testimonialsSectionEnabled === "on",
+    teamSectionEnabled: data.teamSectionEnabled === "on",
     ctaSectionEnabled: data.ctaSectionEnabled === "on",
     blogSectionEnabled: data.blogSectionEnabled === "on",
     introHeading: data.introHeading,

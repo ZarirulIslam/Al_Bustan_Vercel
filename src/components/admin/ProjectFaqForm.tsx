@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { createProjectFaq, updateProjectFaq } from "@/app/admin/(dashboard)/projects/actions";
 import type { ProjectFaq } from "@/lib/types";
 import { useActionFeedback } from "@/components/admin/AdminToaster";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -91,13 +92,12 @@ export function ProjectFaqForm({
       </Field>
 
       <Field label="Answer" htmlFor="answer" error={state.fieldErrors?.answer}>
-        <textarea
+        <RichTextEditor
           id="answer"
           name="answer"
-          rows={4}
-          className={inputClass}
           defaultValue={faq?.answer}
-          required
+          size="sm"
+          invalid={!!state.fieldErrors?.answer}
         />
       </Field>
 

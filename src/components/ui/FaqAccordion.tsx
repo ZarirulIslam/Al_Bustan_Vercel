@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export interface FaqAccordionItem {
   question: string;
-  answer: string;
+  // Already-rendered answer — callers pass <RichText>, which sanitizes
+  // on the server (this component runs in the browser).
+  answer: ReactNode;
 }
 
 // Morphs a "+" into a "−" by rotating the vertical stroke away —
@@ -76,7 +78,7 @@ export function FaqAccordion({
               )}
             >
               <div className="overflow-hidden">
-                <p className="whitespace-pre-line px-5 pb-5 text-sm text-limestone-200/75">{item.answer}</p>
+                <div className="px-5 pb-5 text-sm text-limestone-200/75">{item.answer}</div>
               </div>
             </div>
           </div>

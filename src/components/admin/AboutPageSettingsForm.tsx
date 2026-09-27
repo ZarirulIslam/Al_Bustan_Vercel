@@ -7,6 +7,7 @@ import { CoverImageUploadField } from "@/components/admin/CoverImageUploadField"
 import type { AboutPageSettings } from "@/lib/types";
 import type { AboutPageSettingsFormState } from "@/lib/admin/aboutPageSettingsSchema";
 import { useActionFeedback } from "@/components/admin/AdminToaster";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
 function SubmitButton({ disabledExtra }: { disabledExtra: boolean }) {
   const { pending } = useFormStatus();
@@ -31,6 +32,7 @@ export function AboutPageSettingsForm({
   useActionFeedback(state, "About page saved.");
   const [heroImageUploading, setHeroImageUploading] = useState(false);
   const [overviewImageUploading, setOverviewImageUploading] = useState(false);
+  const [leaderPhotoUploading, setLeaderPhotoUploading] = useState(false);
 
   return (
     <form action={formAction} className="space-y-10">
@@ -106,13 +108,13 @@ export function AboutPageSettingsForm({
             <label htmlFor="overviewParagraph" className="text-sm text-ink">
               Paragraph
             </label>
-            <textarea
+            <RichTextEditor
               id="overviewParagraph"
               name="overviewParagraph"
-              rows={5}
-              className={inputClass}
               defaultValue={settings.overviewParagraph}
-              required
+              size="md"
+              maxLength={1500}
+              invalid={!!state.fieldErrors?.overviewParagraph}
             />
             {state.fieldErrors?.overviewParagraph && (
               <p className="text-xs text-red-700">{state.fieldErrors.overviewParagraph}</p>
@@ -143,17 +145,121 @@ export function AboutPageSettingsForm({
           <label htmlFor="visionParagraph" className="text-sm text-ink">
             Paragraph
           </label>
-          <textarea
+          <RichTextEditor
             id="visionParagraph"
             name="visionParagraph"
-            rows={3}
-            className={inputClass}
             defaultValue={settings.visionParagraph}
-            required
+            size="sm"
+            maxLength={600}
+            invalid={!!state.fieldErrors?.visionParagraph}
           />
           {state.fieldErrors?.visionParagraph && (
             <p className="text-xs text-red-700">{state.fieldErrors.visionParagraph}</p>
           )}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-lg">Leadership Message</h2>
+        <p className="mt-1 text-sm text-ink-soft">
+          A message from your Chairman, MD or other leader, shown after Vision &amp; Mission. Type
+          the title yourself (e.g. &ldquo;Chairman&rsquo;s <em>Message</em>&rdquo; or &ldquo;Message
+          from the MD&rdquo;). Any word you make <em>italic</em> in the heading shows in gold. The
+          section is hidden while the message is empty.
+        </p>
+        <label className="mt-4 flex items-start gap-3 rounded-lg border border-limestone-300 bg-white px-4 py-3">
+          <input
+            type="checkbox"
+            name="leaderSectionEnabled"
+            defaultChecked={settings.leaderSectionEnabled}
+            className="mt-0.5 h-4 w-4 flex-shrink-0 accent-garden-500"
+          />
+          <span className="text-sm font-medium text-ink">Show the leadership message on the About page</span>
+        </label>
+        <div className="mt-4 space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="leaderHeading" className="text-sm text-ink">
+              Heading
+            </label>
+            <RichTextEditor
+              id="leaderHeading"
+              name="leaderHeading"
+              defaultValue={settings.leaderHeading}
+              size="sm"
+              maxLength={80}
+              placeholder="Chairman’s Message"
+              invalid={!!state.fieldErrors?.leaderHeading}
+            />
+            {state.fieldErrors?.leaderHeading && (
+              <p className="text-xs text-red-700">{state.fieldErrors.leaderHeading}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="leaderMessage" className="text-sm text-ink">
+              Message
+            </label>
+            <RichTextEditor
+              id="leaderMessage"
+              name="leaderMessage"
+              defaultValue={settings.leaderMessage}
+              size="lg"
+              maxLength={4000}
+              placeholder="Write the message here. Bold text is shown darker, for emphasis."
+              invalid={!!state.fieldErrors?.leaderMessage}
+            />
+            {state.fieldErrors?.leaderMessage && (
+              <p className="text-xs text-red-700">{state.fieldErrors.leaderMessage}</p>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor="leaderName" className="text-sm text-ink">
+                Name
+              </label>
+              <RichTextEditor
+                id="leaderName"
+                name="leaderName"
+                defaultValue={settings.leaderName}
+                size="sm"
+                maxLength={100}
+                placeholder="Full name"
+                invalid={!!state.fieldErrors?.leaderName}
+              />
+              {state.fieldErrors?.leaderName && (
+                <p className="text-xs text-red-700">{state.fieldErrors.leaderName}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="leaderRole" className="text-sm text-ink">
+                Role
+              </label>
+              <RichTextEditor
+                id="leaderRole"
+                name="leaderRole"
+                defaultValue={settings.leaderRole}
+                size="sm"
+                maxLength={150}
+                placeholder="Chairman, Al Bustan Communities Limited"
+                invalid={!!state.fieldErrors?.leaderRole}
+              />
+              {state.fieldErrors?.leaderRole && (
+                <p className="text-xs text-red-700">{state.fieldErrors.leaderRole}</p>
+              )}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-ink">Portrait photo</label>
+            <CoverImageUploadField
+              fieldName="leaderPhotoUrl"
+              subdir="settings"
+              existingUrl={settings.leaderPhotoUrl ?? undefined}
+              onUploadingChange={setLeaderPhotoUploading}
+            />
+            <p className="text-xs text-ink-soft">
+              A portrait (taller than wide) works best — it&apos;s cropped from the top. Without a
+              photo, the message is shown centred on its own.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -163,18 +269,35 @@ export function AboutPageSettingsForm({
           <label htmlFor="portfolioParagraph" className="text-sm text-ink">
             Paragraph
           </label>
-          <textarea
+          <RichTextEditor
             id="portfolioParagraph"
             name="portfolioParagraph"
-            rows={2}
-            className={inputClass}
             defaultValue={settings.portfolioParagraph}
-            required
+            size="sm"
+            maxLength={400}
+            invalid={!!state.fieldErrors?.portfolioParagraph}
           />
           {state.fieldErrors?.portfolioParagraph && (
             <p className="text-xs text-red-700">{state.fieldErrors.portfolioParagraph}</p>
           )}
         </div>
+      </section>
+
+      <section>
+        <h2 className="text-lg">Our Team</h2>
+        <p className="mt-1 text-sm text-ink-soft">
+          Team members are managed from the Team section. The section is also hidden automatically
+          if no members are published.
+        </p>
+        <label className="mt-4 flex items-start gap-3 rounded-lg border border-limestone-300 bg-white px-4 py-3">
+          <input
+            type="checkbox"
+            name="teamSectionEnabled"
+            defaultChecked={settings.teamSectionEnabled}
+            className="mt-0.5 h-4 w-4 flex-shrink-0 accent-garden-500"
+          />
+          <span className="text-sm font-medium text-ink">Show the team section on the About page</span>
+        </label>
       </section>
 
       <section>
@@ -194,7 +317,7 @@ export function AboutPageSettingsForm({
         </div>
       </section>
 
-      <SubmitButton disabledExtra={heroImageUploading || overviewImageUploading} />
+      <SubmitButton disabledExtra={heroImageUploading || overviewImageUploading || leaderPhotoUploading} />
     </form>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { MAX_IMAGE_MB } from "@/lib/uploadLimits";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { signOut, useSession } from "next-auth/react";
@@ -118,7 +119,7 @@ export function AvatarForm({
             </Button>
           )}
         </div>
-        <p className="mt-2 text-xs text-ink-soft">JPEG, PNG, WebP or GIF, up to 4MB. A square image works best.</p>
+        <p className="mt-2 text-xs text-ink-soft">JPEG, PNG, WebP or GIF, up to {MAX_IMAGE_MB}MB. A square image works best.</p>
         {error && <p className="mt-1 text-xs text-red-700">{error}</p>}
         <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
       </div>

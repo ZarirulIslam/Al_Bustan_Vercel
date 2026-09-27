@@ -19,6 +19,7 @@ export const ADMIN_SECTIONS = [
   { key: "blog", label: "Blog", group: "Content", path: "/admin/blog" },
   { key: "gallery", label: "Gallery", group: "Content", path: "/admin/gallery" },
   { key: "testimonials", label: "Testimonials", group: "Content", path: "/admin/testimonials" },
+  { key: "team", label: "Team", group: "Content", path: "/admin/team" },
   { key: "faqs", label: "FAQs", group: "Content", path: "/admin/faqs" },
   { key: "inquiries", label: "Leads & Inquiries", group: "Sales", path: "/admin/inquiries" },
   { key: "salesTeam", label: "Sales Team", group: "Sales", path: "/admin/sales-team" },

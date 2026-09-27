@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { createPaymentPlan, updatePaymentPlan } from "@/app/admin/(dashboard)/projects/actions";
 import type { PaymentPlan } from "@/lib/types";
 import { useActionFeedback } from "@/components/admin/AdminToaster";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -112,23 +113,21 @@ export function PaymentPlanForm({
       </div>
 
       <Field label="Installment Information" htmlFor="installmentInfo">
-        <textarea
+        <RichTextEditor
           id="installmentInfo"
           name="installmentInfo"
-          rows={3}
-          className={inputClass}
-          defaultValue={plan?.installmentInfo ?? ""}
+          defaultValue={plan?.installmentInfo}
+          size="sm"
           placeholder="e.g. 36 equal monthly installments starting from the booking month"
         />
       </Field>
 
       <Field label="Payment Description" htmlFor="description">
-        <textarea
+        <RichTextEditor
           id="description"
           name="description"
-          rows={3}
-          className={inputClass}
-          defaultValue={plan?.description ?? ""}
+          defaultValue={plan?.description}
+          size="sm"
           placeholder="Any additional notes about this payment plan"
         />
       </Field>
