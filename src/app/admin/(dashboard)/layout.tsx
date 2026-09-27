@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { authOptions } from "@/lib/auth";
 import { AuthSessionProvider } from "@/components/providers/AuthSessionProvider";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminSessionTimeout } from "@/components/admin/AdminSessionTimeout";
 import { AdminToastProvider } from "@/components/admin/AdminToaster";
 import { SIDEBAR_COOKIE } from "@/lib/admin/sidebar";
 
@@ -27,6 +28,8 @@ export default async function AdminLayout({
 
   return (
     <AuthSessionProvider>
+      {/* 30-minute inactivity sign-out (src/lib/sessionPolicy.ts) */}
+      <AdminSessionTimeout />
       <AdminToastProvider>
         <div className="flex min-h-screen flex-col bg-limestone-100 md:flex-row">
           <AdminSidebar initialCollapsed={sidebarCollapsed} initialUser={session.user} />

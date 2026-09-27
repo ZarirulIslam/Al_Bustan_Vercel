@@ -16,6 +16,9 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     sv?: number;
+    // Sign-in time (ms since epoch) — enforces the absolute session
+    // lifetime (src/lib/sessionPolicy.ts).
+    loginAt?: number;
     role?: AdminRole;
     permissions?: string[];
   }

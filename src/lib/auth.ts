@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { resolveAppUrl } from "@/lib/appUrl.mjs";
+import { ADMIN_IDLE_TIMEOUT_SECONDS, isWithinSessionLifetime } from "@/lib/sessionPolicy";
 
 // NextAuth reads NEXTAUTH_URL from the real environment at request time
 // (its server code isn't covered by next.config's build-time `env`), so
@@ -18,6 +19,20 @@ Reflect.set(runtimeEnv, "NEXTAUTH_URL", APP_URL);
 // guessing from the environment, so the cookie NextAuth sets is always
 // the one proxy.ts looks for.
 export const USE_SECURE_COOKIES = APP_URL.startsWith("https://");
+
+if (process.env.NODE_ENV === "production") {
+  // NextAuth itself refuses to run in production without a secret; this
+  // just makes the reason obvious in the logs.
+  if (!process.env.NEXTAUTH_SECRET) {
+    console.error("[auth] NEXTAUTH_SECRET is not set — admin sign-in will not work.");
+  }
+  if (!USE_SECURE_COOKIES) {
+    console.warn(
+      `[auth] Site URL is ${APP_URL} (not HTTPS), so the admin session cookie is not marked Secure. ` +
+        "Set APP_URL/NEXTAUTH_URL to the https:// address in production."
+    );
+  }
+}
 
 // Best-effort login throttling — not a hard guarantee. This is an
 // in-memory map: it resets on every server restart/redeploy, and
@@ -63,11 +78,21 @@ export function clearLoginAttempts(email: string) {
 export const ACCOUNT_DISABLED_ERROR = "AccountDisabled";
 
 export const authOptions: AuthOptions = {
-  // 12 hours rather than NextAuth's 30-day default — this is an
-  // admin CMS backend, not a consumer app; a shorter-lived session is
-  // a meaningful reduction in the window a stolen/left-open session
-  // stays usable, at the cost of signing in somewhat more often.
-  session: { strategy: "jwt", maxAge: 12 * 60 * 60 },
+  // Inactivity timeout: the session JWT and its cookie expire 30 minutes
+  // after their last renewal. NextAuth re-issues both (a fresh 30
+  // minutes) on every /api/auth/session call, which the admin UI makes
+  // while the admin is active — see src/lib/sessionPolicy.ts. A session
+  // left alone expires; getToken()/getServerSession() then return
+  // nothing, so proxy.ts sends the admin back to the login page and
+  // server actions refuse to run. The absolute 12-hour cap is enforced
+  // in the jwt callback below.
+  session: { strategy: "jwt", maxAge: ADMIN_IDLE_TIMEOUT_SECONDS },
+  // Cookie hardening comes from NextAuth's defaults plus this flag: the
+  // session cookie is HttpOnly (no JavaScript access), SameSite=Lax,
+  // path "/", and its value is an encrypted JWT (A256GCM, keyed from
+  // NEXTAUTH_SECRET). Over HTTPS it's also Secure and uses the
+  // __Secure- name prefix, so browsers refuse to send or overwrite it
+  // over plain HTTP.
   useSecureCookies: USE_SECURE_COOKIES,
   pages: {
     signIn: "/admin/login",
@@ -144,8 +169,17 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.id = user.id;
         token.sv = admin.sessionVersion;
-      } else if (admin.sessionVersion !== (token.sv ?? 0)) {
-        throw new Error("Session is no longer valid.");
+        token.loginAt = Date.now();
+      } else {
+        if (admin.sessionVersion !== (token.sv ?? 0)) {
+          throw new Error("Session is no longer valid.");
+        }
+        // Absolute lifetime: activity keeps renewing the idle timeout,
+        // but never past this. Sessions issued before loginAt existed
+        // are treated as expired, so they must sign in once.
+        if (!isWithinSessionLifetime(token.loginAt)) {
+          throw new Error("Session has reached its maximum lifetime.");
+        }
       }
 
       token.email = admin.email;

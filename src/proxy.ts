@@ -5,6 +5,7 @@ import { resolveAppUrl } from "@/lib/appUrl.mjs";
 import { getEnabledRedirect } from "@/lib/redirects";
 import { prisma } from "@/lib/prisma";
 import { hasSectionAccess, sectionForPath } from "@/lib/admin/permissions";
+import { isWithinSessionLifetime } from "@/lib/sessionPolicy";
 
 // Next.js 16 renamed middleware.ts to proxy.ts (and the exported
 // function to `proxy`) — same request-interception role, just runs
@@ -35,6 +36,24 @@ const PUBLIC_ADMIN_PATHS = new Set([
   "/admin/verify-email",
 ]);
 
+// Removes a session cookie that's still present but no longer valid
+// (past its absolute lifetime), including NextAuth's chunked variants
+// (".0", ".1"…). __Secure- cookies can only be cleared with Secure set.
+const SESSION_COOKIE_NAME = /^(__Secure-)?next-auth\.session-token(\.\d+)?$/;
+
+function clearSessionCookies(request: NextRequest, response: NextResponse) {
+  for (const { name } of request.cookies.getAll()) {
+    if (!SESSION_COOKIE_NAME.test(name)) continue;
+    response.cookies.set(name, "", {
+      maxAge: 0,
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: name.startsWith("__Secure-"),
+    });
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -50,10 +69,18 @@ export async function proxy(request: NextRequest) {
       secureCookie: resolveAppUrl(process.env).startsWith("https://"),
     });
 
-    if (!token) {
+    // No token also covers an expired one: getToken() rejects a JWT past
+    // its `exp`, which is 30 minutes after the session was last renewed
+    // (the inactivity timeout — see src/lib/sessionPolicy.ts). The
+    // absolute lifetime is checked here too, so an old token can't be
+    // used for pages even between session renewals.
+    if (!token || !isWithinSessionLifetime(token.loginAt)) {
       const loginUrl = new URL("/admin/login", request.url);
       loginUrl.searchParams.set("from", pathname);
-      return NextResponse.redirect(loginUrl);
+      if (token) loginUrl.searchParams.set("notice", "session-expired");
+      const response = NextResponse.redirect(loginUrl);
+      if (token) clearSessionCookies(request, response);
+      return response;
     }
 
     // Role / section access for the page itself, read fresh from the

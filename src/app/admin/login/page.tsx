@@ -36,6 +36,8 @@ function LoginForm() {
     "password-reset": "Your password has been reset. Sign in with your new password.",
     "password-changed": "Password changed. Please sign in again with your new password.",
     "invite-accepted": "Your account is ready. Sign in with your email and new password.",
+    idle: "You were signed out after 30 minutes of inactivity. Please sign in again.",
+    "session-expired": "Your session has ended. Please sign in again.",
   };
   const notice = notices[searchParams.get("notice") ?? ""] ?? null;
 
