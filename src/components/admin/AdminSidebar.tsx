@@ -15,6 +15,7 @@ type IconName =
   | "homepage"
   | "hero"
   | "projects"
+  | "apartments"
   | "blog"
   | "gallery"
   | "testimonials"
@@ -50,7 +51,8 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
       { label: "Homepage", href: "/admin/homepage", icon: "homepage" },
       { label: "Homepage Hero", href: "/admin/hero", icon: "hero" },
       { label: "About Page", href: "/admin/about", icon: "about" },
-      { label: "Projects", href: "/admin/projects", icon: "projects" },
+      { label: "Land Projects", href: "/admin/projects/land", icon: "projects" },
+      { label: "Apartment Projects", href: "/admin/projects/apartments", icon: "apartments" },
       { label: "Blog", href: "/admin/blog", icon: "blog" },
       { label: "Gallery", href: "/admin/gallery", icon: "gallery" },
       { label: "Testimonials", href: "/admin/testimonials", icon: "testimonials" },
@@ -94,6 +96,14 @@ function NavIcon({ name }: { name: IconName }) {
           <rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
           <rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
           <rect x="13" y="13" width="7.5" height="7.5" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+        </svg>
+      );
+    case "apartments":
+      return (
+        <svg {...common}>
+          <path d="M5 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M15 21V10h3a1 1 0 0 1 1 1v10M3 21h18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M8.5 8h3M8.5 11.5h3M8.5 15h3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
         </svg>
       );
     case "homepage":

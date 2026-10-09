@@ -167,6 +167,17 @@ model Project {
 
   // Flat-only (null/ignored for land_plot projects)
   bedroomOptions String? // e.g. "3 & 4 bedroom units"
+  floors         String? // e.g. "G + 8"
+  parkingSpaces  String? // e.g. "8"
+  lifts          String? // e.g. "1"
+  stairs         String? // e.g. "1"
+
+  // Detail-page presentation (both categories)
+  tagline      String? // short line above the project name in the hero
+  approvalInfo String? // e.g. "RAJUK approved layout" — shown as a hero stat
+  openSpace    String? // e.g. "30% green & open space" — land/plot "at a glance" stat
+  handoverDate String? // free text, e.g. "December 2027"
+  videoUrls    String[] @default([]) // YouTube links, shown as a video showcase
 
   coverImageId String?         @unique
   coverImage   ProjectImage?   @relation("CoverImage", fields: [coverImageId], references: [id])
@@ -175,6 +186,7 @@ model Project {
   paymentPlans PaymentPlan[]
   faqs         ProjectFaq[]
   testimonials Testimonial[]
+  sectionItems ProjectSectionItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -274,10 +286,55 @@ model ProjectFaq {
   @@index([published])
 }
 
+// Which repeatable block of a project's detail page a
+// ProjectSectionItem belongs to — the project-scoped counterpart of
+// ContentSection. Which sections the admin offers (and the public
+// page renders) depends on the project's category; see
+// src/lib/projectSections.ts.
+enum ProjectItemSection {
+  location_highlight // icon cards beside the location story (connectivity)
+  key_feature // icon list next to the photo carousel
+  plot_type // offering cards — plot types / unit types
+  goal // numbered photo cards (vision & goals)
+  security // safety & security icon grid
+  amenity // facilities & amenities icon grid
+  floor_plan // key plan tabs — title + image
+  investment_reason // numbered reasons to invest (land)
+  stat // headline figure (title = value, description = label) — land intro
+  route // access route / landmark beside the master plan — land location map
+  partner // sister-concern logo (image + name) — land page
+}
+
+// One "icon + title + description (+ image)" row on a project's
+// detail page. Same order/published/move-up-down pattern as
+// ProjectFaq; `icon` uses the shared CONTENT_ICON_OPTIONS set.
+model ProjectSectionItem {
+  id        String             @id @default(cuid())
+  projectId String
+  project   Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  section   ProjectItemSection
+  order     Int                @default(0)
+  published Boolean            @default(true)
+
+  icon        String  @default("home")
+  title       String
+  description String  @default("")
+  imageUrl    String?
+  // Optional filter tab for the item (e.g. plot types: "residential" / "commercial").
+  tab         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, section, order])
+}
+
 model ProjectImage {
   id  String @id @default(cuid())
   url String
   alt String
+  // Gallery filter tab (see GALLERY_CATEGORIES in src/lib/projectSections.ts); null = uncategorised.
+  category String?
 
   coverOfProject   Project? @relation("CoverImage")
   galleryProject   Project? @relation("GalleryImages", fields: [galleryProjectId], references: [id], onDelete: Cascade)
@@ -519,6 +576,15 @@ model WebsiteSettings {
   // Footer.tsx regardless of what was entered here.
   companyDescription String @default("Placeholder company description. Replace with Al Bustan Communities Limited's real positioning statement once provided.")
   footerLegalText    String @default("Placeholder footer — legal links to be added.")
+
+  // Footer contact column (like the reference site): any number of named
+  // offices with multi-line addresses, phone numbers and emails, plus a
+  // website. Each falls back to the single address / phone / email above
+  // while empty.
+  footerOffices Json     @default("[]") // [{ name: string, address: string }]
+  footerPhones  String[] @default([])
+  footerEmails  String[] @default([])
+  website       String?
 
   updatedAt DateTime @updatedAt
 }

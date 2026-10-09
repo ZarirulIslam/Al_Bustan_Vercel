@@ -4,6 +4,7 @@ import { primaryNav } from "@/lib/constants";
 import type { SiteSettings } from "@/lib/types";
 import { Container } from "@/components/ui/Container";
 import { RichText } from "@/components/ui/RichText";
+import type { ProjectMenu } from "@/components/layout/Navbar";
 
 const S = { stroke: "currentColor", strokeWidth: 1.6, strokeLinecap: "round", strokeLinejoin: "round", fill: "none" } as const;
 
@@ -26,10 +27,10 @@ const contactIcons = {
       <path {...S} d="m4 7 8 6 8-6" />
     </>
   ),
-  hours: (
+  website: (
     <>
       <circle {...S} cx="12" cy="12" r="8.5" />
-      <path {...S} d="M12 7.5V12l3 2" />
+      <path {...S} d="M3.5 12h17M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5s-1.1 6.1-3.4 8.5c-2.3-2.4-3.4-5.2-3.4-8.5s1.1-6.1 3.4-8.5Z" />
     </>
   ),
 };
@@ -92,7 +93,30 @@ function ContactItem({ icon, children }: { icon: keyof typeof contactIcons; chil
   );
 }
 
-export function Footer({ settings }: { settings: SiteSettings }) {
+export function Footer({
+  settings,
+  projectMenu,
+  hasBlogPosts = true,
+}: {
+  settings: SiteSettings;
+  projectMenu: ProjectMenu;
+  hasBlogPosts?: boolean;
+}) {
+  // Contact column, like the reference footer — each list falls back to
+  // the single address / phone / email while it hasn't been filled in.
+  const offices = settings.footerOffices.length > 0 ? settings.footerOffices : settings.address ? [{ name: "", address: settings.address }] : [];
+  const phones = settings.footerPhones.length > 0 ? settings.footerPhones : settings.phone ? [settings.phone] : [];
+  const emails = settings.footerEmails.length > 0 ? settings.footerEmails : settings.email ? [settings.email] : [];
+
+  // Same links as the header: no Blog until there is a post.
+  const nav = primaryNav.filter((item) => item.label !== "Blog" || hasBlogPosts);
+  // Plain links into the /projects page, filtered by type. A type with no
+  // published project is left out.
+  const projectLinks = [
+    { label: "Land Projects", href: "/projects?category=land_plot#projects", show: projectMenu.land.length > 0 },
+    { label: "Apartment Projects", href: "/projects?category=flat#projects", show: projectMenu.apartments.length > 0 },
+    { label: "All Projects", href: "/projects", show: true },
+  ].filter((link) => link.show);
   const year = new Date().getFullYear();
   // Only real web links — the settings form stores whatever was typed.
   const socials = (Object.keys(socialIcons) as (keyof SiteSettings["social"])[]).flatMap((key) => {
@@ -135,7 +159,7 @@ export function Footer({ settings }: { settings: SiteSettings }) {
         <nav aria-label="Footer">
           <ColumnHeading>Navigate</ColumnHeading>
           <ul className="mt-5 space-y-3">
-            {primaryNav.map((item) => (
+            {nav.map((item) => (
               <li key={item.href}>
                 <FooterLink href={item.href}>{item.label}</FooterLink>
               </li>
@@ -146,44 +170,60 @@ export function Footer({ settings }: { settings: SiteSettings }) {
         <div>
           <ColumnHeading>Projects</ColumnHeading>
           <ul className="mt-5 space-y-3">
-            <li>
-              <FooterLink href="/projects/ongoing">Ongoing</FooterLink>
-            </li>
-            <li>
-              <FooterLink href="/projects/completed">Completed</FooterLink>
-            </li>
-            <li>
-              <FooterLink href="/projects/upcoming">Upcoming</FooterLink>
-            </li>
+            {projectLinks.map((link) => (
+              <li key={link.href}>
+                <FooterLink href={link.href}>{link.label}</FooterLink>
+              </li>
+            ))}
           </ul>
         </div>
 
         <div>
           <ColumnHeading>Contact</ColumnHeading>
-          <ul className="mt-5 space-y-4 text-sm">
-            {settings.address && <ContactItem icon="address">{settings.address}</ContactItem>}
-            {settings.phone && (
+          <ul className="mt-5 space-y-5 text-sm">
+            {offices.map((office) => (
+              <ContactItem key={office.name + office.address} icon="address">
+                {office.name && <span className="block font-semibold text-white">{office.name}</span>}
+                <span className="block whitespace-pre-line leading-relaxed">{office.address}</span>
+              </ContactItem>
+            ))}
+            {phones.length > 0 && (
               <ContactItem icon="phone">
-                <a href={`tel:${settings.phone.replace(/[^\d+]/g, "")}`} className="transition-colors hover:text-white">
-                  {settings.phone}
-                </a>
+                {phones.map((phone) => (
+                  <a key={phone} href={`tel:${phone.replace(/[^\d+]/g, "")}`} className="block leading-relaxed transition-colors hover:text-white">
+                    {phone}
+                  </a>
+                ))}
               </ContactItem>
             )}
-            {settings.email && (
+            {emails.length > 0 && (
               <ContactItem icon="email">
-                <a href={`mailto:${settings.email}`} className="transition-colors hover:text-white">
-                  {/* Prefer wrapping after "@" over breaking mid-word. */}
-                  {settings.email.split("@")[0]}
-                  {settings.email.includes("@") && (
-                    <>
-                      @<wbr />
-                      {settings.email.slice(settings.email.indexOf("@") + 1)}
-                    </>
-                  )}
+                {emails.map((email) => (
+                  <a key={email} href={`mailto:${email}`} className="block leading-relaxed transition-colors hover:text-white">
+                    {/* Prefer wrapping after "@" over breaking mid-word. */}
+                    {email.split("@")[0]}
+                    {email.includes("@") && (
+                      <>
+                        @<wbr />
+                        {email.slice(email.indexOf("@") + 1)}
+                      </>
+                    )}
+                  </a>
+                ))}
+              </ContactItem>
+            )}
+            {settings.website && (
+              <ContactItem icon="website">
+                <a
+                  href={/^https?:\/\//i.test(settings.website) ? settings.website : `https://${settings.website}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition-colors hover:text-white"
+                >
+                  {settings.website.replace(/^https?:\/\//i, "").replace(/\/$/, "")}
                 </a>
               </ContactItem>
             )}
-            {settings.businessHours && <ContactItem icon="hours">{settings.businessHours}</ContactItem>}
           </ul>
         </div>
       </Container>

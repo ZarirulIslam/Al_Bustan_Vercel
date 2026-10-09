@@ -15,6 +15,10 @@ export const inquiryFormSchema = z.object({
   subject: z.string().min(1, "Subject is required."),
   inquiryType: z.enum(["general", "buying", "site_visit", "pricing", "other"]).default("general"),
   message: z.string().min(1, "Message is required."),
+  // Project lead form only (ProjectLeadForm): what kind of property the
+  // visitor is interested in, and whether they pressed "Book a Site Visit".
+  propertyType: z.enum(["land_plot", "flat"]).optional(),
+  intent: z.enum(["site_visit"]).optional(),
   projectId: z.string().optional(),
   projectName: z.string().optional(),
 });

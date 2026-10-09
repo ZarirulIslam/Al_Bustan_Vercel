@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { richTextField } from "@/lib/richText/server";
+import { youtubeId } from "@/lib/projectSections";
+
+const optionalShort = z.string().max(120, "Keep it under 120 characters.").optional();
 
 export const projectFormSchema = z.object({
   name: z.string().min(2, "Name is required."),
@@ -15,11 +18,12 @@ export const projectFormSchema = z.object({
   }),
   location: z.string().min(1, "Location is required."),
   shortDescription: z.string().min(1, "Short description is required."),
-  fullDescription: richTextField({ required: "Full description is required." }),
+  // Optional: the Apartment page doesn't show it (Land editor asks for it).
+  fullDescription: richTextField(),
   projectType: z.string().min(1, "Project type is required."),
   totalArea: z.string().min(1, "Total area is required."),
-  unitInfo: z.string().min(1, "Unit/plot information is required."),
-  timeline: z.string().min(1, "Timeline is required."),
+  unitInfo: z.string().optional(),
+  timeline: z.string().optional(),
   features: richTextField({ max: 3000 }),
   latitude: z.string().optional(),
   longitude: z.string().optional(),
@@ -29,6 +33,22 @@ export const projectFormSchema = z.object({
   pricingInfo: richTextField(),
   nearbyFacilities: richTextField({ max: 3000 }),
   bedroomOptions: z.string().optional(),
+  floors: optionalShort,
+  parkingSpaces: optionalShort,
+  lifts: optionalShort,
+  stairs: optionalShort,
+  tagline: z.string().max(160, "Keep it under 160 characters.").optional(),
+  approvalInfo: optionalShort,
+  openSpace: optionalShort,
+  handoverDate: optionalShort,
+  // One YouTube link per line.
+  videoUrls: z
+    .string()
+    .optional()
+    .refine(
+      (value) => parseVideoUrls(value).every((url) => youtubeId(url) !== null),
+      "Each line must be a YouTube link (youtube.com/watch?v=… or youtu.be/…)."
+    ),
   block: z.string().optional(),
   facing: z.string().optional(),
   frontRoadWidth: z.string().optional(),
@@ -39,9 +59,17 @@ export const projectFormSchema = z.object({
   noIndex: z.string().optional(),
 });
 
+export function parseVideoUrls(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 export type ProjectFormValues = z.infer<typeof projectFormSchema>;
 
 export interface ProjectFormState {
+  success?: boolean;
   error?: string;
   fieldErrors?: Partial<Record<keyof ProjectFormValues, string>>;
 }

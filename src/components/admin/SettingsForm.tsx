@@ -9,6 +9,7 @@ import type { SiteSettings } from "@/lib/types";
 import type { SettingsFormState } from "@/lib/admin/settingsSchema";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { useActionFeedback } from "@/components/admin/AdminToaster";
+import { FooterContactFields } from "@/components/admin/FooterContactFields";
 
 function SubmitButton({ disabledExtra }: { disabledExtra: boolean }) {
   const { pending } = useFormStatus();
@@ -201,6 +202,14 @@ export function SettingsForm({
               invalid={!!state.fieldErrors?.footerLegalText}
             />
           </Field>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-lg">Footer contact</h2>
+        <p className="mt-1 text-sm text-ink-soft">The Contact column of the site footer — offices, phone numbers, emails and website.</p>
+        <div className="mt-4">
+          <FooterContactFields settings={settings} errors={state.fieldErrors} />
         </div>
       </section>
 

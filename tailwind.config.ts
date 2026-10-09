@@ -58,8 +58,8 @@ const config: Config = {
         white: "#FFFFFF",
       },
       fontFamily: {
-        display: ["var(--font-display)", "Georgia", "serif"],
-        body: ["var(--font-body)", "Helvetica", "Arial", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-bn)", "Georgia", "serif"],
+        body: ["var(--font-body)", "var(--font-bn)", "Helvetica", "Arial", "sans-serif"],
       },
       fontSize: {
         // Type scale, ~1.2 ratio, tuned for a display serif + body sans

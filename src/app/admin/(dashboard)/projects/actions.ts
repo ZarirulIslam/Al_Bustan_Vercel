@@ -7,9 +7,16 @@ import { deleteImage } from "@/lib/storage";
 import { logActivity } from "@/lib/activityLog";
 import { redirectWithFlash } from "@/lib/admin/flash";
 import {
+  parseVideoUrls,
   projectFormSchema,
   type ProjectFormState,
+  type ProjectFormValues,
 } from "@/lib/admin/projectSchema";
+import {
+  projectSectionItemFormSchema,
+  type ProjectSectionItemFormState,
+} from "@/lib/admin/projectSectionItemSchema";
+import { PROJECT_SECTIONS, isGalleryCategory, projectEditPath } from "@/lib/projectSections";
 import {
   inventoryItemFormSchema,
   type InventoryItemFormState,
@@ -22,7 +29,7 @@ import {
   projectFaqFormSchema,
   type ProjectFaqFormState,
 } from "@/lib/admin/projectFaqSchema";
-import type { InventoryStatus } from "@/lib/types";
+import type { InventoryStatus, ProjectItemSection } from "@/lib/types";
 
 // Images are no longer uploaded through these server actions. The
 // admin form uploads cover/gallery images directly from the browser
@@ -41,6 +48,40 @@ async function requireAdmin() {
 
 function isPlausibleImageUrl(value: string): boolean {
   return value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/uploads/");
+}
+
+// Detail-page presentation fields added for the redesigned project
+// pages — flat-only specs are cleared for land/plot projects, same as
+// bedroomOptions.
+function presentationFields(data: ProjectFormValues) {
+  const isFlat = data.category === "flat";
+  const text = (value: string | undefined) => value?.trim() || null;
+  return {
+    floors: isFlat ? text(data.floors) : null,
+    parkingSpaces: isFlat ? text(data.parkingSpaces) : null,
+    lifts: isFlat ? text(data.lifts) : null,
+    stairs: isFlat ? text(data.stairs) : null,
+    tagline: text(data.tagline),
+    approvalInfo: text(data.approvalInfo),
+    openSpace: isFlat ? null : text(data.openSpace),
+    handoverDate: text(data.handoverDate),
+    videoUrls: parseVideoUrls(data.videoUrls),
+  };
+}
+
+// Each editor (Land / Apartment) only submits the fields its page
+// uses. On update, a field that wasn't submitted keeps its stored value
+// instead of being blanked — e.g. saving from the Apartment editor never
+// wipes text that only the Land editor (or older data) holds. Keys must
+// match the form field names.
+function onlySubmitted<T extends Record<string, unknown>>(formData: FormData, fields: T): Partial<T> {
+  return Object.fromEntries(Object.entries(fields).filter(([key]) => formData.has(key))) as Partial<T>;
+}
+
+// Gallery filter tab chosen in the form ("" or anything unknown = none).
+function galleryCategoryFrom(value: FormDataEntryValue | null): string | null {
+  const category = String(value ?? "");
+  return isGalleryCategory(category) ? category : null;
 }
 
 function revalidatePublicProjectPages() {
@@ -106,8 +147,8 @@ export async function createProject(
       fullDescription: data.fullDescription,
       projectType: data.projectType,
       totalArea: data.totalArea,
-      unitInfo: data.unitInfo,
-      timeline: data.timeline,
+      unitInfo: data.unitInfo ?? "",
+      timeline: data.timeline ?? "",
       features: data.features,
       latitude: data.latitude ? Number(data.latitude) : null,
       longitude: data.longitude ? Number(data.longitude) : null,
@@ -117,6 +158,7 @@ export async function createProject(
       pricingInfo: data.pricingInfo || null,
       nearbyFacilities: data.nearbyFacilities,
       bedroomOptions: data.category === "flat" ? data.bedroomOptions || null : null,
+      ...presentationFields(data),
       block: data.block || null,
       facing: data.facing || null,
       frontRoadWidth: data.frontRoadWidth || null,
@@ -129,7 +171,13 @@ export async function createProject(
       canonicalUrl: data.canonicalUrl?.trim() || null,
       noIndex: data.noIndex === "on",
       coverImage: { create: { url: coverUrl, alt: data.name } },
-      gallery: { create: galleryUrls.map((url) => ({ url, alt: data.name })) },
+      gallery: {
+        create: galleryUrls.map((url) => ({
+          url,
+          alt: data.name,
+          category: galleryCategoryFrom(formData.get("newGalleryCategory")),
+        })),
+      },
     },
   });
 
@@ -141,8 +189,11 @@ export async function createProject(
   });
 
   revalidatePublicProjectPages();
-  revalidatePath("/admin/projects");
-  return redirectWithFlash("/admin/projects", `Project "${project.name}" created.`);
+  revalidatePath("/admin/projects", "layout");
+  return redirectWithFlash(
+    projectEditPath(project),
+    `Project "${project.name}" created — now fill in its page sections.`
+  );
 }
 
 export async function updateProject(
@@ -201,6 +252,14 @@ export async function updateProject(
       await tx.projectImage.deleteMany({ where: { id: { in: removeGalleryIds } } });
     }
 
+    for (const image of existing.gallery) {
+      if (removeGalleryIds.includes(image.id) || !formData.has(`galleryCategory:${image.id}`)) continue;
+      const category = galleryCategoryFrom(formData.get(`galleryCategory:${image.id}`));
+      if (category !== image.category) {
+        await tx.projectImage.update({ where: { id: image.id }, data: { category } });
+      }
+    }
+
     if (newCoverUrl) {
       if (existing.coverImageId) {
         await tx.projectImage.update({
@@ -218,35 +277,45 @@ export async function updateProject(
     await tx.project.update({
       where: { id },
       data: {
-        name: data.name,
-        slug: data.slug,
-        status: data.status,
-        category: data.category,
-        location: data.location,
-        shortDescription: data.shortDescription,
-        fullDescription: data.fullDescription,
-        projectType: data.projectType,
-        totalArea: data.totalArea,
-        unitInfo: data.unitInfo,
-        timeline: data.timeline,
-        features: data.features,
-        latitude: data.latitude ? Number(data.latitude) : null,
-        longitude: data.longitude ? Number(data.longitude) : null,
-        totalUnits: data.totalUnits ? Number(data.totalUnits) : null,
-        availableUnits: data.availableUnits ? Number(data.availableUnits) : null,
-        sizesOffered: data.sizesOffered || null,
-        pricingInfo: data.pricingInfo || null,
-        nearbyFacilities: data.nearbyFacilities,
-        bedroomOptions: data.category === "flat" ? data.bedroomOptions || null : null,
-        block: data.block || null,
-        facing: data.facing || null,
-        frontRoadWidth: data.frontRoadWidth || null,
+        ...onlySubmitted(formData, {
+          name: data.name,
+          slug: data.slug,
+          status: data.status,
+          category: data.category,
+          location: data.location,
+          shortDescription: data.shortDescription,
+          fullDescription: data.fullDescription,
+          projectType: data.projectType,
+          totalArea: data.totalArea,
+          unitInfo: data.unitInfo,
+          timeline: data.timeline,
+          features: data.features,
+          latitude: data.latitude ? Number(data.latitude) : null,
+          longitude: data.longitude ? Number(data.longitude) : null,
+          totalUnits: data.totalUnits ? Number(data.totalUnits) : null,
+          availableUnits: data.availableUnits ? Number(data.availableUnits) : null,
+          sizesOffered: data.sizesOffered || null,
+          pricingInfo: data.pricingInfo || null,
+          nearbyFacilities: data.nearbyFacilities,
+          bedroomOptions: data.category === "flat" ? data.bedroomOptions || null : null,
+          ...presentationFields(data),
+          block: data.block || null,
+          facing: data.facing || null,
+          frontRoadWidth: data.frontRoadWidth || null,
+          seoTitle: data.seoTitle?.trim() || null,
+          metaDescription: data.metaDescription?.trim() || null,
+          canonicalUrl: data.canonicalUrl?.trim() || null,
+        }),
+        // Checkboxes send nothing when unticked, so these always apply.
         published: data.published === "on",
-        seoTitle: data.seoTitle?.trim() || null,
-        metaDescription: data.metaDescription?.trim() || null,
-        canonicalUrl: data.canonicalUrl?.trim() || null,
         noIndex: data.noIndex === "on",
-        gallery: { create: newGalleryUrls.map((url) => ({ url, alt: data.name })) },
+        gallery: {
+          create: newGalleryUrls.map((url) => ({
+            url,
+            alt: data.name,
+            category: galleryCategoryFrom(formData.get("newGalleryCategory")),
+          })),
+        },
         ...(newMasterPlanUrl ? { masterPlanUrl: newMasterPlanUrl } : {}),
         ...(newBrochureUrl ? { brochureUrl: newBrochureUrl } : {}),
         ...(newOgImageUrl ? { ogImageUrl: newOgImageUrl } : {}),
@@ -282,8 +351,10 @@ export async function updateProject(
   });
 
   revalidatePublicProjectPages();
-  revalidatePath("/admin/projects");
-  return redirectWithFlash("/admin/projects", `Project "${data.name}" saved.`);
+  revalidatePath("/admin/projects", "layout");
+  // Stays on the editor (it may be mid-way through a long page); the
+  // client shows the toast and refreshes from the revalidated data.
+  return { success: true };
 }
 
 export async function deleteProject(id: string) {
@@ -291,7 +362,7 @@ export async function deleteProject(id: string) {
 
   const project = await prisma.project.findUnique({
     where: { id },
-    include: { coverImage: true, gallery: true },
+    include: { coverImage: true, gallery: true, sectionItems: { select: { imageUrl: true } } },
   });
   if (!project) return;
 
@@ -308,6 +379,7 @@ export async function deleteProject(id: string) {
     ...(project.masterPlanUrl ? [project.masterPlanUrl] : []),
     ...(project.brochureUrl ? [project.brochureUrl] : []),
     ...(project.ogImageUrl ? [project.ogImageUrl] : []),
+    ...project.sectionItems.flatMap((item) => (item.imageUrl ? [item.imageUrl] : [])),
   ];
   await Promise.all(urlsToClean.map((url) => deleteImage(url)));
 
@@ -319,7 +391,7 @@ export async function deleteProject(id: string) {
   });
 
   revalidatePublicProjectPages();
-  revalidatePath("/admin/projects");
+  revalidatePath("/admin/projects", "layout");
 }
 
 export async function togglePublished(id: string, published: boolean) {
@@ -332,7 +404,7 @@ export async function togglePublished(id: string, published: boolean) {
     description: `${published ? "Published" : "Unpublished"} project "${project.name}"`,
   });
   revalidatePublicProjectPages();
-  revalidatePath("/admin/projects");
+  revalidatePath("/admin/projects", "layout");
 }
 
 // --- Inventory (individual plots / units within a project) ---
@@ -342,7 +414,7 @@ async function revalidateInventoryPages(projectId: string) {
     where: { id: projectId },
     select: { slug: true },
   });
-  revalidatePath(`/admin/projects/${projectId}/edit`);
+  revalidatePath("/admin/projects", "layout");
   if (project) revalidatePath(`/projects/${project.slug}`);
 }
 
@@ -718,6 +790,155 @@ export async function moveProjectFaq(id: string, direction: "up" | "down") {
     prisma.projectFaq.update({ where: { id: current.id }, data: { order: neighbor.order } }),
     prisma.projectFaq.update({ where: { id: neighbor.id }, data: { order: current.order } }),
   ]);
+
+  await revalidateInventoryPages(current.projectId);
+}
+
+// --- Page sections (amenities, key features, floor plans, …) ---
+
+function parseSectionItemForm(section: ProjectItemSection, formData: FormData) {
+  const config = PROJECT_SECTIONS[section];
+  const parsed = projectSectionItemFormSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    const fieldErrors: ProjectSectionItemFormState["fieldErrors"] = {};
+    for (const issue of parsed.error.issues) {
+      const key = issue.path[0] as keyof typeof fieldErrors;
+      if (key) fieldErrors[key] = issue.message;
+    }
+    return { ok: false as const, state: { fieldErrors } };
+  }
+  const data = parsed.data;
+  const rawImageUrl = data.imageUrl?.trim() ?? "";
+  return {
+    ok: true as const,
+    values: {
+      title: data.title,
+      description: config.description ? data.description ?? "" : "",
+      icon: config.icon ? data.icon ?? "home" : "home",
+      imageUrl: config.image !== "none" && isPlausibleImageUrl(rawImageUrl) ? rawImageUrl : null,
+      tab: config.tabs?.some((t) => t.value === data.tab) ? data.tab! : config.tabs ? config.tabs[0].value : null,
+    },
+  };
+}
+
+export async function createProjectSectionItem(
+  projectId: string,
+  section: ProjectItemSection,
+  _prevState: ProjectSectionItemFormState,
+  formData: FormData
+): Promise<ProjectSectionItemFormState> {
+  await requireAdmin();
+  if (!(section in PROJECT_SECTIONS)) return { error: "Unknown section." };
+
+  const result = parseSectionItemForm(section, formData);
+  if (!result.ok) return result.state;
+  const { values } = result;
+  if (PROJECT_SECTIONS[section].image === "required" && !values.imageUrl) {
+    return { fieldErrors: { imageUrl: "An image is required — please wait for it to finish uploading." } };
+  }
+
+  const last = await prisma.projectSectionItem.findFirst({
+    where: { projectId, section },
+    orderBy: { order: "desc" },
+  });
+
+  const item = await prisma.projectSectionItem.create({
+    data: { projectId, section, order: (last?.order ?? -1) + 1, ...values },
+  });
+
+  await logActivity({
+    action: "created",
+    resource: "ProjectSectionItem",
+    resourceId: item.id,
+    description: `Added "${item.title}" to ${PROJECT_SECTIONS[section].label}`,
+  });
+
+  await revalidateInventoryPages(projectId);
+  return { success: true };
+}
+
+export async function updateProjectSectionItem(
+  id: string,
+  _prevState: ProjectSectionItemFormState,
+  formData: FormData
+): Promise<ProjectSectionItemFormState> {
+  await requireAdmin();
+
+  const existing = await prisma.projectSectionItem.findUnique({ where: { id } });
+  if (!existing) return { error: "Item not found." };
+
+  const result = parseSectionItemForm(existing.section, formData);
+  if (!result.ok) return result.state;
+  const { imageUrl, ...values } = result.values;
+
+  await prisma.projectSectionItem.update({
+    where: { id },
+    // An empty upload field means "keep the current image".
+    data: { ...values, ...(imageUrl ? { imageUrl } : {}) },
+  });
+
+  if (imageUrl && existing.imageUrl) {
+    await deleteImage(existing.imageUrl);
+  }
+
+  await logActivity({
+    action: "updated",
+    resource: "ProjectSectionItem",
+    resourceId: id,
+    description: `Updated "${values.title}" in ${PROJECT_SECTIONS[existing.section].label}`,
+  });
+
+  await revalidateInventoryPages(existing.projectId);
+  return { success: true };
+}
+
+export async function deleteProjectSectionItem(id: string) {
+  await requireAdmin();
+  const item = await prisma.projectSectionItem.delete({ where: { id } }).catch(() => null);
+  if (!item) return;
+  if (item.imageUrl) await deleteImage(item.imageUrl);
+  await logActivity({
+    action: "deleted",
+    resource: "ProjectSectionItem",
+    resourceId: id,
+    description: `Deleted "${item.title}" from ${PROJECT_SECTIONS[item.section].label}`,
+  });
+  await revalidateInventoryPages(item.projectId);
+}
+
+export async function toggleProjectSectionItemPublished(id: string, published: boolean) {
+  await requireAdmin();
+  const item = await prisma.projectSectionItem.update({ where: { id }, data: { published } });
+  await logActivity({
+    action: published ? "published" : "unpublished",
+    resource: "ProjectSectionItem",
+    resourceId: id,
+    description: `${published ? "Published" : "Hid"} "${item.title}" in ${PROJECT_SECTIONS[item.section].label}`,
+  });
+  await revalidateInventoryPages(item.projectId);
+}
+
+export async function moveProjectSectionItem(id: string, direction: "up" | "down") {
+  await requireAdmin();
+
+  const current = await prisma.projectSectionItem.findUnique({ where: { id } });
+  if (!current) return;
+
+  const items = await prisma.projectSectionItem.findMany({
+    where: { projectId: current.projectId, section: current.section },
+    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+  });
+  const index = items.findIndex((item) => item.id === id);
+  const swapIndex = direction === "up" ? index - 1 : index + 1;
+  if (index === -1 || swapIndex < 0 || swapIndex >= items.length) return;
+
+  // Re-number the whole list so items that share an `order` value
+  // (e.g. created in the same instant) still swap correctly.
+  const reordered = [...items];
+  [reordered[index], reordered[swapIndex]] = [reordered[swapIndex], reordered[index]];
+  await prisma.$transaction(
+    reordered.map((item, order) => prisma.projectSectionItem.update({ where: { id: item.id }, data: { order } }))
+  );
 
   await revalidateInventoryPages(current.projectId);
 }

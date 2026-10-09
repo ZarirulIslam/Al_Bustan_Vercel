@@ -8,6 +8,8 @@ export interface ProjectImage {
   id: string;
   url: string;
   alt: string;
+  // Gallery filter key (see src/lib/projectSections.ts); only set on gallery images.
+  category?: string | null;
 }
 
 export type ProjectCategory = "land_plot" | "flat";
@@ -38,6 +40,15 @@ export interface Project {
   brochureUrl: string | null;
   masterPlanUrl: string | null;
   bedroomOptions: string | null;
+  floors: string | null;
+  parkingSpaces: string | null;
+  lifts: string | null;
+  stairs: string | null;
+  tagline: string | null;
+  approvalInfo: string | null;
+  openSpace: string | null;
+  handoverDate: string | null;
+  videoUrls: string[];
   block: string | null;
   facing: string | null;
   frontRoadWidth: string | null;
@@ -91,6 +102,37 @@ export interface PaymentPlan {
   installmentInfo: string | null;
   description: string | null;
   enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Which repeatable block of a project's detail page a
+// ProjectSectionItem belongs to — see src/lib/projectSections.ts for
+// labels and which category uses which section.
+export type ProjectItemSection =
+  | "location_highlight"
+  | "key_feature"
+  | "plot_type"
+  | "goal"
+  | "security"
+  | "amenity"
+  | "floor_plan"
+  | "investment_reason"
+  | "stat"
+  | "route"
+  | "partner";
+
+export interface ProjectSectionItem {
+  id: string;
+  projectId: string;
+  section: ProjectItemSection;
+  order: number;
+  published: boolean;
+  icon: string;
+  title: string;
+  description: string;
+  imageUrl: string | null;
+  tab: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -199,6 +241,18 @@ export interface SiteSettings {
   };
   companyDescription: string;
   footerLegalText: string;
+  // Footer contact column; each list falls back to the single
+  // address / phone / email above while empty.
+  footerOffices: FooterOffice[];
+  footerPhones: string[];
+  footerEmails: string[];
+  website: string | null;
+}
+
+export interface FooterOffice {
+  name: string;
+  // Multi-line; each line is shown on its own row.
+  address: string;
 }
 
 // Admin-editable parts of the homepage beyond the hero slider and

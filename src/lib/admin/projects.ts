@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { mapProject, projectWithImages } from "@/lib/data/mapProject";
-import type { Project } from "@/lib/types";
+import type { Project, ProjectCategory } from "@/lib/types";
 
 export async function getAllProjectsAdmin(): Promise<Project[]> {
   const rows = await prisma.project.findMany({
@@ -28,4 +28,13 @@ export async function getProjectCounts() {
     prisma.project.count({ where: { published: false } }),
   ]);
   return { total, ongoing, completed, upcoming, published, unpublished };
+}
+
+export async function getProjectsByCategoryAdmin(category: ProjectCategory): Promise<Project[]> {
+  const rows = await prisma.project.findMany({
+    where: { category },
+    orderBy: { updatedAt: "desc" },
+    include: projectWithImages,
+  });
+  return rows.map(mapProject);
 }

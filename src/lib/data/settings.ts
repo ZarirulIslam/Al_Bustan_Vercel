@@ -1,7 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import { defaultSiteSettings } from "@/lib/constants";
-import type { SiteSettings } from "@/lib/types";
+import type { FooterOffice, SiteSettings } from "@/lib/types";
 import type { WebsiteSettings } from "@prisma/client";
+
+// footerOffices is a JSON column — keep only well-formed entries.
+function parseOffices(value: unknown): FooterOffice[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((o) =>
+    o && typeof o === "object" && typeof (o as FooterOffice).name === "string" && typeof (o as FooterOffice).address === "string"
+      ? [{ name: (o as FooterOffice).name, address: (o as FooterOffice).address }]
+      : []
+  );
+}
 
 function mapSettings(row: WebsiteSettings): SiteSettings {
   return {
@@ -27,6 +37,10 @@ function mapSettings(row: WebsiteSettings): SiteSettings {
     },
     companyDescription: row.companyDescription,
     footerLegalText: row.footerLegalText,
+    footerOffices: parseOffices(row.footerOffices),
+    footerPhones: row.footerPhones,
+    footerEmails: row.footerEmails,
+    website: row.website,
   };
 }
 

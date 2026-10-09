@@ -114,6 +114,7 @@ export default async function ContactPage() {
                 latitude={settings.latitude}
                 longitude={settings.longitude}
                 label={settings.companyName}
+                address={settings.address}
               />
             </div>
           </div>

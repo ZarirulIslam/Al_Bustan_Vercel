@@ -1,11 +1,6 @@
 import type { InventoryItem, InventoryStatus, ProjectCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const statusLabels: Record<InventoryStatus, string> = {
-  available: "Available",
-  reserved: "Reserved",
-  sold: "Sold",
-};
+import { SHARED_COPY, type ProjectLocale } from "@/lib/projectCopy";
 
 const statusStyles: Record<InventoryStatus, string> = {
   available: "bg-garden-500 text-white",
@@ -13,7 +8,7 @@ const statusStyles: Record<InventoryStatus, string> = {
   sold: "bg-limestone-300 text-ink-soft",
 };
 
-function InventoryStatusBadge({ status }: { status: InventoryStatus }) {
+function InventoryStatusBadge({ status, label }: { status: InventoryStatus; label: string }) {
   return (
     <span
       className={cn(
@@ -21,7 +16,7 @@ function InventoryStatusBadge({ status }: { status: InventoryStatus }) {
         statusStyles[status]
       )}
     >
-      {statusLabels[status]}
+      {label}
     </span>
   );
 }
@@ -33,34 +28,36 @@ function InventoryStatusBadge({ status }: { status: InventoryStatus }) {
 export function InventoryTable({
   items,
   category,
+  locale = "en",
 }: {
   items: InventoryItem[];
   category: ProjectCategory;
+  locale?: ProjectLocale;
 }) {
+  const t = SHARED_COPY[locale].inventory;
   if (items.length === 0) return null;
 
   const isFlat = category === "flat";
-  const unitLabel = isFlat ? "Unit" : "Plot";
 
   return (
     <div className="overflow-x-auto rounded-lg border border-limestone-300">
       <table className="w-full min-w-[640px] text-left text-sm">
         <thead className="border-b border-limestone-300 bg-limestone-100 text-xs uppercase tracking-wide text-ink-soft">
           <tr>
-            <th className="px-4 py-3 font-semibold">{unitLabel} No.</th>
-            <th className="px-4 py-3 font-semibold">{isFlat ? "Floor" : "Block"}</th>
-            <th className="px-4 py-3 font-semibold">Size</th>
+            <th className="px-4 py-3 font-semibold">{isFlat ? t.unitNo : t.plotNo}</th>
+            <th className="px-4 py-3 font-semibold">{isFlat ? t.floor : t.block}</th>
+            <th className="px-4 py-3 font-semibold">{t.size}</th>
             {isFlat ? (
               <>
-                <th className="px-4 py-3 font-semibold">Bed / Bath</th>
-                <th className="px-4 py-3 font-semibold">Parking</th>
+                <th className="px-4 py-3 font-semibold">{t.bedBath}</th>
+                <th className="px-4 py-3 font-semibold">{t.parking}</th>
               </>
             ) : (
-              <th className="px-4 py-3 font-semibold">Road Width</th>
+              <th className="px-4 py-3 font-semibold">{t.roadWidth}</th>
             )}
-            <th className="px-4 py-3 font-semibold">Facing</th>
-            <th className="px-4 py-3 font-semibold">Price</th>
-            <th className="px-4 py-3 font-semibold">Status</th>
+            <th className="px-4 py-3 font-semibold">{t.facing}</th>
+            <th className="px-4 py-3 font-semibold">{t.price}</th>
+            <th className="px-4 py-3 font-semibold">{t.status}</th>
           </tr>
         </thead>
         <tbody>
@@ -83,7 +80,7 @@ export function InventoryTable({
               <td className="px-4 py-3 text-ink-soft">{item.facing || "—"}</td>
               <td className="px-4 py-3 text-ink-soft">{item.price || "—"}</td>
               <td className="px-4 py-3">
-                <InventoryStatusBadge status={item.status} />
+                <InventoryStatusBadge status={item.status} label={t.statuses[item.status]} />
               </td>
             </tr>
           ))}

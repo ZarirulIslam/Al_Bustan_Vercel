@@ -38,6 +38,11 @@ const nextConfig = {
         protocol: "https",
         hostname: "**.supabase.co",
       },
+      {
+        // YouTube video thumbnails (project video showcase).
+        protocol: "https",
+        hostname: "i.ytimg.com",
+      },
     ],
   },
   experimental: {

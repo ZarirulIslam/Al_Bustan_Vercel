@@ -31,6 +31,10 @@ export const defaultSiteSettings: SiteSettings = {
   companyDescription:
     "Placeholder company description. Replace with Al Bustan Communities Limited's real positioning statement once provided.",
   footerLegalText: "Placeholder footer — legal links to be added.",
+  footerOffices: [],
+  footerPhones: [],
+  footerEmails: [],
+  website: null,
 };
 
 // PLACEHOLDER — mirrors defaultSiteSettings: the fallback used by
@@ -115,6 +119,45 @@ export const CONTENT_ICON_OPTIONS = [
   "handshake",
   "users",
   "star",
+  // Location & connectivity
+  "pin",
+  "road",
+  "plane",
+  "bus",
+  "car",
+  // Nature & environment
+  "water",
+  "tree",
+  "leaf",
+  "sun",
+  // Safety & utilities
+  "camera",
+  "bell",
+  "bolt",
+  "plug",
+  "wifi",
+  "recycle",
+  // Civic & lifestyle
+  "bike",
+  "school",
+  "institution",
+  "mosque",
+  "hospital",
+  "store",
+  "basket",
+  "utensils",
+  "dumbbell",
+  "pool",
+  "flame",
+  "sofa",
+  "child",
+  // Building specs
+  "parking",
+  "lift",
+  "stairs",
+  "layers",
+  "ruler",
+  "calendar",
 ] as const;
 
 export type ContentIconKey = (typeof CONTENT_ICON_OPTIONS)[number];
@@ -129,13 +172,10 @@ export const primaryNav: NavLink[] = [
   { label: "Home", href: "/" },
   { label: "About Us", href: "/about" },
   {
+    // The navbar turns this into the Land Project / Apartment Project
+    // menu, listing published projects of each type (see Navbar).
     label: "Projects",
     href: "/projects",
-    children: [
-      { label: "Ongoing", href: "/projects/ongoing" },
-      { label: "Completed", href: "/projects/completed" },
-      { label: "Upcoming", href: "/projects/upcoming" },
-    ],
   },
   { label: "Gallery", href: "/gallery" },
   { label: "Blog", href: "/blog" },

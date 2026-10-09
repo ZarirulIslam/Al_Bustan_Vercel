@@ -48,6 +48,13 @@ export async function updateSettings(
 
   const existing = await prisma.websiteSettings.findUnique({ where: { id: "singleton" } });
 
+  const footerContact = {
+    footerOffices: data.footerOffices,
+    footerPhones: data.footerPhones,
+    footerEmails: data.footerEmails,
+    website: data.website || null,
+  };
+
   const rawLogoUrl = String(formData.get("logoUrl") || "");
   const newLogoUrl = isPlausibleImageUrl(rawLogoUrl) ? rawLogoUrl : undefined;
 
@@ -71,6 +78,7 @@ export async function updateSettings(
       seoDescription: data.seoDescription,
       companyDescription: data.companyDescription,
       footerLegalText: data.footerLegalText,
+      ...footerContact,
       ...(newLogoUrl ? { logoUrl: newLogoUrl } : {}),
     },
     create: {
@@ -93,6 +101,7 @@ export async function updateSettings(
       seoDescription: data.seoDescription,
       companyDescription: data.companyDescription,
       footerLegalText: data.footerLegalText,
+      ...footerContact,
     },
   });
 

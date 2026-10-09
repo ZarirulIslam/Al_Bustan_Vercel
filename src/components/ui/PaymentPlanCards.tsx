@@ -1,11 +1,13 @@
 import type { PaymentPlan } from "@/lib/types";
 import { RichText } from "@/components/ui/RichText";
+import { SHARED_COPY, type ProjectLocale } from "@/lib/projectCopy";
 
 // Read-only display shown on the public project detail page — admin
 // management lives at /admin/projects/[id]/edit (see PaymentPlanManager).
 // Only enabled plans ever reach this component (see
 // getEnabledPaymentPlansForProject), so nothing here re-checks that.
-export function PaymentPlanCards({ plans }: { plans: PaymentPlan[] }) {
+export function PaymentPlanCards({ plans, locale = "en" }: { plans: PaymentPlan[]; locale?: ProjectLocale }) {
+  const t = SHARED_COPY[locale].payment;
   if (plans.length === 0) return null;
 
   return (
@@ -18,13 +20,13 @@ export function PaymentPlanCards({ plans }: { plans: PaymentPlan[] }) {
             <dl className="mt-4 space-y-2.5 border-t border-limestone-300 pt-4">
               {plan.bookingAmount && (
                 <div className="flex justify-between gap-4 text-sm">
-                  <dt className="text-ink-soft">Booking Amount</dt>
+                  <dt className="text-ink-soft">{t.bookingAmount}</dt>
                   <dd className="text-right font-medium text-ink">{plan.bookingAmount}</dd>
                 </div>
               )}
               {plan.downPayment && (
                 <div className="flex justify-between gap-4 text-sm">
-                  <dt className="text-ink-soft">Down Payment</dt>
+                  <dt className="text-ink-soft">{t.downPayment}</dt>
                   <dd className="text-right font-medium text-ink">{plan.downPayment}</dd>
                 </div>
               )}
