@@ -8,6 +8,8 @@ import { ApartmentProjectEditor } from "@/components/admin/project-editor/Apartm
 import { createProject, updateProject } from "@/app/admin/(dashboard)/projects/actions";
 import { getProjectByIdAdmin, getProjectsByCategoryAdmin } from "@/lib/admin/projects";
 import { getSectionItemsForProjectAdmin } from "@/lib/data/projectSectionItems";
+import { getInventoryForProject } from "@/lib/data/inventory";
+import { getPlotGroupsForProject } from "@/lib/data/plotGroups";
 import { projectAdminBase, projectEditPath } from "@/lib/projectSections";
 import type { ProjectCategory } from "@/lib/types";
 
@@ -90,7 +92,11 @@ export async function EditProjectPage({ id, category }: { id: string; category: 
   // Opened from the other area's URL: send it to the right editor.
   if (project.category !== category) redirect(projectEditPath(project));
 
-  const sections = await getSectionItemsForProjectAdmin(project.id);
+  const [sections, inventory, plotGroups] = await Promise.all([
+    getSectionItemsForProjectAdmin(project.id),
+    getInventoryForProject(project.id),
+    getPlotGroupsForProject(project.id),
+  ]);
   const area = AREA[category];
   const boundUpdate = updateProject.bind(null, project.id);
 
@@ -130,7 +136,13 @@ export async function EditProjectPage({ id, category }: { id: string; category: 
         {category === "flat" ? (
           <ApartmentProjectEditor action={boundUpdate} project={project} sections={sections} />
         ) : (
-          <LandProjectEditor action={boundUpdate} project={project} sections={sections} />
+          <LandProjectEditor
+            action={boundUpdate}
+            project={project}
+            sections={sections}
+            inventory={inventory}
+            plotGroups={plotGroups}
+          />
         )}
       </div>
     </div>

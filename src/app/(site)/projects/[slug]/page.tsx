@@ -4,6 +4,8 @@ import { LandProjectView } from "@/components/project/LandProjectView";
 import { ApartmentProjectView } from "@/components/project/ApartmentProjectView";
 import { getAllPublishedProjects, getProjectBySlug } from "@/lib/data/projects";
 import { getPublishedSectionItemsForProject } from "@/lib/data/projectSectionItems";
+import { getInventoryForProject } from "@/lib/data/inventory";
+import { buildPlotSections, getPlotGroupsForProject } from "@/lib/data/plotGroups";
 
 export const revalidate = 0;
 
@@ -62,5 +64,12 @@ export default async function ProjectDetailPage({
     return <ApartmentProjectView project={project} sections={sections} related={related} />;
   }
 
-  return <LandProjectView project={project} sections={sections} />;
+  const [inventory, plotGroups] = await Promise.all([
+    getInventoryForProject(project.id),
+    getPlotGroupsForProject(project.id),
+  ]);
+  // Only what the public may see (no file numbers): categories with
+  // plots on their layout, plus plots not placed on one yet.
+  const plotSections = buildPlotSections(plotGroups, inventory);
+  return <LandProjectView project={project} sections={sections} plotSections={plotSections} />;
 }

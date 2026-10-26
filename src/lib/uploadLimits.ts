@@ -12,3 +12,8 @@ export const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
 
 export const MAX_DOCUMENT_MB = 10;
 export const MAX_DOCUMENT_BYTES = MAX_DOCUMENT_MB * 1024 * 1024;
+
+// Matches Supabase's default global upload limit (50MB on the Free
+// plan) — raise both together if the project's limit is raised.
+export const MAX_VIDEO_MB = 50;
+export const MAX_VIDEO_BYTES = MAX_VIDEO_MB * 1024 * 1024;

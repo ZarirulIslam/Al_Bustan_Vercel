@@ -1,4 +1,11 @@
-import { MAX_DOCUMENT_BYTES, MAX_DOCUMENT_MB, MAX_IMAGE_BYTES, MAX_IMAGE_MB } from "@/lib/uploadLimits";
+import {
+  MAX_DOCUMENT_BYTES,
+  MAX_DOCUMENT_MB,
+  MAX_IMAGE_BYTES,
+  MAX_IMAGE_MB,
+  MAX_VIDEO_BYTES,
+  MAX_VIDEO_MB,
+} from "@/lib/uploadLimits";
 
 // A storage provider only needs to do one thing: take a File and a
 // subdirectory/category, persist it somewhere, and return a public
@@ -12,6 +19,8 @@ export interface StorageProvider {
   // Optional — only "brochures" uploads need this. Same idea as
   // saveImage but validated as a document (PDF) instead.
   saveDocument?(file: File, subdir: string): Promise<string>;
+  // Optional — only "videos" uploads need this.
+  saveVideo?(file: File, subdir: string): Promise<string>;
   // Best-effort cleanup of a previously-saved image, given the public
   // URL saveImage returned. Optional because not every provider can
   // cheaply support it, and callers must never let a delete failure
@@ -23,11 +32,13 @@ export class UnsupportedImageTypeError extends Error {}
 export class ImageTooLargeError extends Error {}
 export class UnsupportedDocumentTypeError extends Error {}
 export class DocumentTooLargeError extends Error {}
+export class UnsupportedVideoTypeError extends Error {}
+export class VideoTooLargeError extends Error {}
 
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 // Limits live in src/lib/uploadLimits.ts (shared with the browser-side
 // check); re-exported here for existing server-side imports.
-export { MAX_IMAGE_BYTES, MAX_DOCUMENT_BYTES } from "@/lib/uploadLimits";
+export { MAX_IMAGE_BYTES, MAX_DOCUMENT_BYTES, MAX_VIDEO_BYTES } from "@/lib/uploadLimits";
 
 export function validateImageFile(file: File) {
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
@@ -50,5 +61,18 @@ export function validateDocumentFile(file: File) {
   }
   if (file.size > MAX_DOCUMENT_BYTES) {
     throw new DocumentTooLargeError(`File is too large (${MAX_DOCUMENT_MB}MB max).`);
+  }
+}
+
+// Videos (e.g. the land page's intro video) — formats every modern
+// browser plays in a plain <video> tag.
+export const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm"];
+
+export function validateVideoFile(file: File) {
+  if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
+    throw new UnsupportedVideoTypeError("Unsupported video type. Use MP4 or WebM.");
+  }
+  if (file.size > MAX_VIDEO_BYTES) {
+    throw new VideoTooLargeError(`Video is too large (${MAX_VIDEO_MB}MB max).`);
   }
 }

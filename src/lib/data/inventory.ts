@@ -10,7 +10,9 @@ import type { InventoryItem } from "@/lib/types";
 export async function getInventoryForProject(projectId: string): Promise<InventoryItem[]> {
   const rows = await prisma.inventoryItem.findMany({
     where: { projectId },
-    orderBy: { code: "asc" },
   });
-  return rows.map(mapInventoryItem);
+  // Natural order, so plot "2" comes before plot "10".
+  return rows
+    .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true, sensitivity: "base" }))
+    .map(mapInventoryItem);
 }

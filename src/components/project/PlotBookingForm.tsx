@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { submitPlotBooking } from "@/lib/actions/inquiries";
 import { cn } from "@/lib/utils";
 
@@ -9,16 +9,28 @@ const inputClass =
 
 // "প্লট বুকিং" form on land project pages. Blocks come from the project
 // (Admin → Booking step); with none set, block is typed in freely.
+// On a plot layout page the visitor has already picked a plot, so
+// `plot` fills in block / plot no. / size and those fields are hidden.
 export function PlotBookingForm({
   projectId,
   projectName,
   blocks,
+  plot,
+  onSuccess,
 }: {
   projectId: string;
   projectName: string;
   blocks: string[];
+  plot?: { id: string; code: string; block: string | null; size: string; category: string };
+  // Called once the request is sent — e.g. the plot popup closes itself.
+  onSuccess?: () => void;
 }) {
   const [state, formAction, isPending] = useActionState(submitPlotBooking, {});
+
+  useEffect(() => {
+    if (state.success) onSuccess?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.success]);
 
   if (state.success) {
     return (
@@ -30,6 +42,7 @@ export function PlotBookingForm({
         </span>
         <p className="mt-5 text-xl font-semibold text-garden-700">ধন্যবাদ! আপনার বুকিং রিকোয়েস্ট আমরা পেয়েছি।</p>
         <p className="mt-2 text-ink-soft">আমাদের প্রতিনিধি অতি দ্রুত আপনার সাথে যোগাযোগ করবেন।</p>
+        {onSuccess && <p className="mt-4 text-xs text-ink-soft">এই উইন্ডোটি কিছুক্ষণের মধ্যে নিজে থেকেই বন্ধ হয়ে যাবে।</p>}
       </div>
     );
   }
@@ -40,6 +53,10 @@ export function PlotBookingForm({
         {state.fieldErrors[field] === "email" ? "সঠিক ইমেইল ঠিকানা দিন।" : "এই তথ্যটি প্রয়োজন।"}
       </p>
     ) : null;
+
+  const fixed = plot
+    ? { block: plot.block || "—", plotNo: plot.code, size: plot.size }
+    : null;
 
   const field = (
     name: "name" | "address" | "road" | "phone" | "plotNo" | "email" | "size",
@@ -69,38 +86,63 @@ export function PlotBookingForm({
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="projectId" value={projectId} />
       <input type="hidden" name="projectName" value={projectName} />
+      {plot && fixed && (
+        <>
+          <input type="hidden" name="inventoryItemId" value={plot.id} />
+          <input type="hidden" name="plotCategory" value={plot.category} />
+          <input type="hidden" name="block" value={fixed.block} />
+          <input type="hidden" name="plotNo" value={fixed.plotNo} />
+          <input type="hidden" name="size" value={fixed.size} />
+        </>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {field("name", "নাম", "সম্পূর্ণ নাম", { required: true, autoComplete: "name" })}
-        <div>
-          <label htmlFor="booking-block" className="text-sm font-medium text-ink">
-            ব্লক<span className="text-red-600">*</span>
-          </label>
-          {blocks.length > 0 ? (
-            <select id="booking-block" name="block" required defaultValue="" className={cn(inputClass, "appearance-auto")}>
-              <option value="" disabled>
-                ব্লক নির্বাচন করুন
-              </option>
-              {blocks.map((block) => (
-                <option key={block} value={block}>
-                  {block}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input id="booking-block" name="block" required placeholder="পছন্দের ব্লক" className={inputClass} />
-          )}
-          {err("block")}
-        </div>
-        {field("address", "ঠিকানা", "বর্তমান ঠিকানা", { required: true, autoComplete: "street-address" })}
-        {field("road", "রোড / রাস্তা", "রাস্তা / এলাকা")}
-        {field("phone", "ফোন নম্বর", "আপনার ফোন নম্বর", { required: true, type: "tel", autoComplete: "tel" })}
-        {field("plotNo", "প্লট নং", "পছন্দের প্লট নং")}
-        {field("email", "ইমেইল", "আপনার ইমেইল", { required: true, type: "email", autoComplete: "email" })}
-        {field("size", "আয়তন (কাঠা)", "প্রয়োজনীয় সাইজ", { required: true })}
+        {fixed ? (
+          <>
+            {field("phone", "ফোন নম্বর", "আপনার ফোন নম্বর", { required: true, type: "tel", autoComplete: "tel" })}
+            {field("email", "ইমেইল", "আপনার ইমেইল", { required: true, type: "email", autoComplete: "email" })}
+            {field("address", "ঠিকানা", "বর্তমান ঠিকানা", { required: true, autoComplete: "street-address" })}
+          </>
+        ) : (
+          <>
+            <div>
+              <label htmlFor="booking-block" className="text-sm font-medium text-ink">
+                ব্লক<span className="text-red-600">*</span>
+              </label>
+              {blocks.length > 0 ? (
+                <select id="booking-block" name="block" required defaultValue="" className={cn(inputClass, "appearance-auto")}>
+                  <option value="" disabled>
+                    ব্লক নির্বাচন করুন
+                  </option>
+                  {blocks.map((block) => (
+                    <option key={block} value={block}>
+                      {block}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input id="booking-block" name="block" required placeholder="পছন্দের ব্লক" className={inputClass} />
+              )}
+              {err("block")}
+            </div>
+            {field("address", "ঠিকানা", "বর্তমান ঠিকানা", { required: true, autoComplete: "street-address" })}
+            {field("road", "রোড / রাস্তা", "রাস্তা / এলাকা")}
+            {field("phone", "ফোন নম্বর", "আপনার ফোন নম্বর", { required: true, type: "tel", autoComplete: "tel" })}
+            {field("plotNo", "প্লট নং", "পছন্দের প্লট নং")}
+            {field("email", "ইমেইল", "আপনার ইমেইল", { required: true, type: "email", autoComplete: "email" })}
+            {field("size", "আয়তন (কাঠা)", "প্রয়োজনীয় সাইজ", { required: true })}
+          </>
+        )}
       </div>
 
-      {state.error && <p className="text-sm text-red-700">কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।</p>}
+      {state.error && (
+        <p className="text-sm text-red-700">
+          {state.error === "unavailable"
+            ? "দুঃখিত, এই প্লটটি আর খালি নেই। অনুগ্রহ করে অন্য একটি প্লট বেছে নিন।"
+            : "কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"}
+        </p>
+      )}
 
       <button
         type="submit"

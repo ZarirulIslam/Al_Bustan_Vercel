@@ -39,6 +39,9 @@ export interface Project {
   nearbyFacilities: string;
   brochureUrl: string | null;
   masterPlanUrl: string | null;
+  // Uploaded video shown instead of the cover photo beside the land
+  // page's introduction. The cover photo still serves project cards.
+  introVideoUrl: string | null;
   bedroomOptions: string | null;
   floors: string | null;
   parkingSpaces: string | null;
@@ -67,6 +70,9 @@ export interface Project {
 
 export type InventoryStatus = "available" | "reserved" | "sold";
 
+// How the buyer of a plot/unit is paying — এককালীন or কিস্তি.
+export type PaymentMode = "one_time" | "installment";
+
 // One sellable plot (land_plot projects) or flat/unit (flat
 // projects) within a project. `code` is the plot number or unit
 // number depending on the parent project's category; the
@@ -81,12 +87,53 @@ export interface InventoryItem {
   status: InventoryStatus;
   block: string | null;
   roadWidth: string | null;
+  groupId: string | null;
+  gridRow: number | null;
+  gridCol: number | null;
   floor: string | null;
   bedrooms: string | null;
   bathrooms: string | null;
   parking: string | null;
+  clientName: string | null;
+  fileNumber: string | null;
+  paymentMode: PaymentMode | null;
+  totalInstallments: number | null;
+  remainingInstallments: number | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// A plot category of a land project (e.g. "৩ কাঠা", "বাণিজ্যিক") with
+// its own public layout page — plots sit on a rows × columns grid.
+export interface PlotGroup {
+  id: string;
+  projectId: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  rows: number;
+  columns: number;
+  order: number;
+}
+
+// What a public plot layout page sends to the browser about one plot —
+// never the admin-only file number, and no buyer info for a plot
+// that's available.
+export interface PublicPlot {
+  id: string;
+  code: string;
+  status: InventoryStatus;
+  gridRow: number;
+  gridCol: number;
+  block: string | null;
+  size: string | null;
+  facing: string | null;
+  roadWidth: string | null;
+  price: string | null;
+  clientName: string | null;
+  paymentMode: PaymentMode | null;
+  totalInstallments: number | null;
+  remainingInstallments: number | null;
 }
 
 // A named payment option for a project (e.g. "Cash Payment", "3-Year

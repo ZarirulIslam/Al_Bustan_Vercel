@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { randomUUID } from "crypto";
-import { validateImageFile, validateDocumentFile, type StorageProvider } from "@/lib/storage/types";
+import { validateImageFile, validateDocumentFile, validateVideoFile, type StorageProvider } from "@/lib/storage/types";
 
 // Shared server-side (service role) Supabase client + bucket config,
 // used both by SupabaseStorageProvider below (server-initiated
@@ -73,6 +73,11 @@ export class SupabaseStorageProvider implements StorageProvider {
 
   async saveDocument(file: File, subdir: string): Promise<string> {
     validateDocumentFile(file);
+    return this.saveFile(file, subdir);
+  }
+
+  async saveVideo(file: File, subdir: string): Promise<string> {
+    validateVideoFile(file);
     return this.saveFile(file, subdir);
   }
 

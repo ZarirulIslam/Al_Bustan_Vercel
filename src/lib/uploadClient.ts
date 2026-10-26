@@ -1,9 +1,16 @@
 "use client";
 
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowserClient";
-import { MAX_DOCUMENT_BYTES, MAX_DOCUMENT_MB, MAX_IMAGE_BYTES, MAX_IMAGE_MB } from "@/lib/uploadLimits";
+import {
+  MAX_DOCUMENT_BYTES,
+  MAX_DOCUMENT_MB,
+  MAX_IMAGE_BYTES,
+  MAX_IMAGE_MB,
+  MAX_VIDEO_BYTES,
+  MAX_VIDEO_MB,
+} from "@/lib/uploadLimits";
 
-type UploadSubdir = "projects" | "blog" | "settings" | "gallery" | "brochures" | "hero" | "testimonials" | "team" | "avatars";
+type UploadSubdir = "projects" | "blog" | "settings" | "gallery" | "brochures" | "hero" | "testimonials" | "team" | "avatars" | "videos";
 
 // NOTE: this client-side check is a fast, friendly first line of
 // feedback only — it is not a security boundary (nothing stops a
@@ -80,7 +87,7 @@ async function uploadClientSide(file: File, subdir: UploadSubdir): Promise<strin
 
 export async function uploadImageClientSide(
   file: File,
-  subdir: Exclude<UploadSubdir, "brochures">
+  subdir: Exclude<UploadSubdir, "brochures" | "videos">
 ): Promise<string> {
   if (file.size > MAX_IMAGE_BYTES) {
     throw new ClientUploadError(`Image is too large (${MAX_IMAGE_MB}MB max).`);
@@ -96,4 +103,14 @@ export async function uploadDocumentClientSide(file: File): Promise<string> {
     throw new ClientUploadError(`File is too large (${MAX_DOCUMENT_MB}MB max).`);
   }
   return uploadClientSide(file, "brochures");
+}
+
+export async function uploadVideoClientSide(file: File): Promise<string> {
+  if (file.type !== "video/mp4" && file.type !== "video/webm") {
+    throw new ClientUploadError("Unsupported video type. Use MP4 or WebM.");
+  }
+  if (file.size > MAX_VIDEO_BYTES) {
+    throw new ClientUploadError(`Video is too large (${MAX_VIDEO_MB}MB max).`);
+  }
+  return uploadClientSide(file, "videos");
 }

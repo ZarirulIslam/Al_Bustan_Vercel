@@ -9,7 +9,7 @@ import { LocalStorageProvider } from "@/lib/storage/local";
 // directly — which is fine here because it only ever runs against a
 // local dev server with no Vercel-style request-body ceiling to
 // worry about. This route is not used when STORAGE_PROVIDER=supabase.
-const ALLOWED_SUBDIRS = ["projects", "blog", "settings", "gallery", "brochures", "hero", "testimonials", "team", "avatars"] as const;
+const ALLOWED_SUBDIRS = ["projects", "blog", "settings", "gallery", "brochures", "hero", "testimonials", "team", "avatars", "videos"] as const;
 type AllowedSubdir = (typeof ALLOWED_SUBDIRS)[number];
 
 function isAllowedSubdir(value: unknown): value is AllowedSubdir {
@@ -49,7 +49,11 @@ export async function POST(request: Request) {
   try {
     const provider = new LocalStorageProvider();
     const url =
-      subdir === "brochures" ? await provider.saveDocument(file, subdir) : await provider.saveImage(file, subdir);
+      subdir === "brochures"
+        ? await provider.saveDocument(file, subdir)
+        : subdir === "videos"
+          ? await provider.saveVideo(file, subdir)
+          : await provider.saveImage(file, subdir);
     return NextResponse.json({ publicUrl: url });
   } catch (err) {
     // Logged server-side for debugging; the client only gets a

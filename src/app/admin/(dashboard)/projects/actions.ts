@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { requireSectionAccess } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { deleteImage } from "@/lib/storage";
@@ -18,9 +19,12 @@ import {
 } from "@/lib/admin/projectSectionItemSchema";
 import { PROJECT_SECTIONS, isGalleryCategory, projectEditPath } from "@/lib/projectSections";
 import {
+  inventoryItemData,
   inventoryItemFormSchema,
   type InventoryItemFormState,
 } from "@/lib/admin/inventorySchema";
+import { MAX_GRID, plotGroupFormSchema, type PlotGroupFormState } from "@/lib/admin/plotGroupSchema";
+import { parseNumberList, parseRange, planRangeFill, rangeCodeSets } from "@/lib/plotLayout";
 import {
   paymentPlanFormSchema,
   type PaymentPlanFormState,
@@ -136,6 +140,9 @@ export async function createProject(
   const rawOgImageUrl = String(formData.get("ogImageUrl") || "");
   const ogImageUrl = isPlausibleImageUrl(rawOgImageUrl) ? rawOgImageUrl : null;
 
+  const rawIntroVideoUrl = String(formData.get("introVideoUrl") || "");
+  const introVideoUrl = isPlausibleImageUrl(rawIntroVideoUrl) ? rawIntroVideoUrl : null;
+
   const project = await prisma.project.create({
     data: {
       name: data.name,
@@ -164,6 +171,7 @@ export async function createProject(
       frontRoadWidth: data.frontRoadWidth || null,
       masterPlanUrl,
       brochureUrl,
+      introVideoUrl,
       published: data.published === "on",
       seoTitle: data.seoTitle?.trim() || null,
       metaDescription: data.metaDescription?.trim() || null,
@@ -247,6 +255,11 @@ export async function updateProject(
   const rawOgImageUrl = String(formData.get("ogImageUrl") || "");
   const newOgImageUrl = isPlausibleImageUrl(rawOgImageUrl) ? rawOgImageUrl : null;
 
+  const rawIntroVideoUrl = String(formData.get("introVideoUrl") || "");
+  const newIntroVideoUrl = isPlausibleImageUrl(rawIntroVideoUrl) ? rawIntroVideoUrl : null;
+  // A new upload wins over a ticked "Remove video".
+  const removeIntroVideo = !newIntroVideoUrl && formData.get("removeIntroVideo") === "on";
+
   await prisma.$transaction(async (tx) => {
     if (removeGalleryIds.length > 0) {
       await tx.projectImage.deleteMany({ where: { id: { in: removeGalleryIds } } });
@@ -319,6 +332,8 @@ export async function updateProject(
         ...(newMasterPlanUrl ? { masterPlanUrl: newMasterPlanUrl } : {}),
         ...(newBrochureUrl ? { brochureUrl: newBrochureUrl } : {}),
         ...(newOgImageUrl ? { ogImageUrl: newOgImageUrl } : {}),
+        ...(newIntroVideoUrl ? { introVideoUrl: newIntroVideoUrl } : {}),
+        ...(removeIntroVideo ? { introVideoUrl: null } : {}),
       },
     });
   });
@@ -337,6 +352,9 @@ export async function updateProject(
   }
   if (newBrochureUrl && existing.brochureUrl) {
     await deleteImage(existing.brochureUrl);
+  }
+  if ((newIntroVideoUrl || removeIntroVideo) && existing.introVideoUrl) {
+    await deleteImage(existing.introVideoUrl);
   }
   const removedGalleryUrls = existing.gallery
     .filter((g) => removeGalleryIds.includes(g.id))
@@ -378,6 +396,7 @@ export async function deleteProject(id: string) {
     ...project.gallery.map((g) => g.url),
     ...(project.masterPlanUrl ? [project.masterPlanUrl] : []),
     ...(project.brochureUrl ? [project.brochureUrl] : []),
+    ...(project.introVideoUrl ? [project.introVideoUrl] : []),
     ...(project.ogImageUrl ? [project.ogImageUrl] : []),
     ...project.sectionItems.flatMap((item) => (item.imageUrl ? [item.imageUrl] : [])),
   ];
@@ -415,7 +434,35 @@ async function revalidateInventoryPages(projectId: string) {
     select: { slug: true },
   });
   revalidatePath("/admin/projects", "layout");
-  if (project) revalidatePath(`/projects/${project.slug}`);
+  // "layout" also covers the plot layout pages under /projects/[slug]/plots.
+  if (project) revalidatePath(`/projects/${project.slug}`, "layout");
+}
+
+const CELL_TAKEN = "That spot on the layout already has a plot.";
+
+function isUniqueViolation(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
+
+// A plot placed on a layout must belong to a category of the same
+// project, sit inside that category's grid, and have a number not used
+// by another plot of that category (numbers repeat across categories).
+async function placementError(
+  projectId: string,
+  data: { code: string; groupId?: string; gridRow: number | null; gridCol: number | null },
+  excludeId?: string
+): Promise<InventoryItemFormState | null> {
+  if (!data.groupId) return null;
+  const group = await prisma.plotGroup.findUnique({ where: { id: data.groupId } });
+  if (!group || group.projectId !== projectId) return { fieldErrors: { groupId: "Choose a category." } };
+  if (data.gridRow! > group.rows) return { fieldErrors: { gridRow: `This layout has ${group.rows} rows.` } };
+  if (data.gridCol! > group.columns) return { fieldErrors: { gridCol: `This layout has ${group.columns} columns.` } };
+  const twin = await prisma.inventoryItem.findFirst({
+    where: { groupId: group.id, code: data.code, ...(excludeId && { id: { not: excludeId } }) },
+    select: { id: true },
+  });
+  if (twin) return { fieldErrors: { code: `"${group.name}" already has plot ${data.code}.` } };
+  return null;
 }
 
 export async function createInventoryItem(
@@ -437,22 +484,18 @@ export async function createInventoryItem(
   }
   const data = parsed.data;
 
-  const item = await prisma.inventoryItem.create({
-    data: {
-      projectId,
-      code: data.code,
-      status: data.status,
-      size: data.size || null,
-      facing: data.facing || null,
-      price: data.price || null,
-      block: data.block || null,
-      roadWidth: data.roadWidth || null,
-      floor: data.floor || null,
-      bedrooms: data.bedrooms || null,
-      bathrooms: data.bathrooms || null,
-      parking: data.parking || null,
-    },
-  });
+  const placement = await placementError(projectId, data);
+  if (placement) return placement;
+
+  let item;
+  try {
+    item = await prisma.inventoryItem.create({
+      data: { projectId, ...inventoryItemData(data) },
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) return { fieldErrors: { gridCol: CELL_TAKEN } };
+    throw error;
+  }
 
   await logActivity({
     action: "created",
@@ -487,22 +530,18 @@ export async function updateInventoryItem(
   const existing = await prisma.inventoryItem.findUnique({ where: { id } });
   if (!existing) return { error: "Item not found." };
 
-  await prisma.inventoryItem.update({
-    where: { id },
-    data: {
-      code: data.code,
-      status: data.status,
-      size: data.size || null,
-      facing: data.facing || null,
-      price: data.price || null,
-      block: data.block || null,
-      roadWidth: data.roadWidth || null,
-      floor: data.floor || null,
-      bedrooms: data.bedrooms || null,
-      bathrooms: data.bathrooms || null,
-      parking: data.parking || null,
-    },
-  });
+  const placement = await placementError(existing.projectId, data, id);
+  if (placement) return placement;
+
+  try {
+    await prisma.inventoryItem.update({
+      where: { id },
+      data: inventoryItemData(data),
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) return { fieldErrors: { gridCol: CELL_TAKEN } };
+    throw error;
+  }
 
   await logActivity({
     action: "updated",
@@ -529,6 +568,69 @@ export async function deleteInventoryItem(id: string) {
   }
 }
 
+// Bulk delete from the "All plots" list: the rows the admin ticked.
+// Limited to this project so a stale selection can't reach elsewhere.
+export async function deleteInventoryItems(projectId: string, ids: string[]) {
+  await requireAdmin();
+  if (ids.length === 0) return { error: "Nothing selected." };
+  const { count } = await prisma.inventoryItem.deleteMany({ where: { projectId, id: { in: ids } } });
+  if (count === 0) return { error: "Those were already deleted." };
+
+  await logActivity({
+    action: "deleted",
+    resource: "InventoryItem",
+    resourceId: projectId,
+    description: `Deleted ${count} inventory items`,
+  });
+  await revalidateInventoryPages(projectId);
+  return { message: `${count} deleted.` };
+}
+
+// Delete by number range across the whole project (any category, or
+// none). Booked/sold plots and ones with buyer info are kept unless
+// `includeBooked` is set.
+export async function deleteInventoryRange(
+  projectId: string,
+  // groupId: a category id, "unplaced" (not on any layout) or "" for all.
+  input: { range: string; prefix: string; includeBooked: boolean; groupId: string }
+) {
+  await requireAdmin();
+
+  const range = parseRange(input.range);
+  if ("error" in range) return { error: range.error };
+
+  const prefix = input.prefix.trim();
+  const wanted: string[] = [];
+  for (let n = range.from; n <= range.to; n++) wanted.push(prefix + String(n).padStart(range.pad, "0"));
+
+  const inRange = await prisma.inventoryItem.findMany({
+    where: {
+      projectId,
+      code: { in: wanted },
+      ...(input.groupId === "unplaced" ? { groupId: null } : input.groupId ? { groupId: input.groupId } : {}),
+    },
+    select: { id: true, status: true, clientName: true, fileNumber: true, paymentMode: true },
+  });
+  if (inRange.length === 0) return { error: "No plots with those numbers." };
+  const deletable = input.includeBooked
+    ? inRange
+    : inRange.filter((p) => p.status === "available" && !p.clientName && !p.fileNumber && !p.paymentMode);
+  if (deletable.length === 0) return { error: "Every plot in that range is booked or sold — nothing deleted." };
+
+  await prisma.inventoryItem.deleteMany({ where: { id: { in: deletable.map((p) => p.id) } } });
+
+  await logActivity({
+    action: "deleted",
+    resource: "InventoryItem",
+    resourceId: projectId,
+    description: `Deleted ${deletable.length} plots (${prefix}${input.range.trim()})`,
+  });
+  await revalidateInventoryPages(projectId);
+
+  const kept = inRange.length - deletable.length;
+  return { message: `${deletable.length} deleted.${kept ? ` ${kept} booked/sold were kept.` : ""}` };
+}
+
 export async function updateInventoryItemStatus(id: string, status: InventoryStatus) {
   await requireAdmin();
   const item = await prisma.inventoryItem.update({ where: { id }, data: { status } });
@@ -539,6 +641,321 @@ export async function updateInventoryItemStatus(id: string, status: InventorySta
     description: `Changed inventory item "${item.code}"'s status to ${status}`,
   });
   await revalidateInventoryPages(item.projectId);
+}
+
+// Layout editor "quick add": clicking an empty cell creates an available
+// plot there with the next number, without opening the full form.
+export async function quickAddPlot(groupId: string, gridRow: number, gridCol: number, code: string) {
+  await requireAdmin();
+  const trimmed = code.trim();
+  if (!trimmed) return { error: "Enter a plot number." };
+
+  const group = await prisma.plotGroup.findUnique({ where: { id: groupId } });
+  if (!group) return { error: "Category not found." };
+  if (gridRow < 1 || gridCol < 1 || gridRow > group.rows || gridCol > group.columns) {
+    return { error: "That spot is outside the layout." };
+  }
+  if (await prisma.inventoryItem.findFirst({ where: { groupId, code: trimmed }, select: { id: true } })) {
+    return { error: `"${group.name}" already has plot ${trimmed}.` };
+  }
+
+  try {
+    const item = await prisma.inventoryItem.create({
+      data: { projectId: group.projectId, code: trimmed, status: "available", groupId, gridRow, gridCol },
+    });
+    await logActivity({
+      action: "created",
+      resource: "InventoryItem",
+      resourceId: item.id,
+      description: `Added plot "${item.code}" to "${group.name}"`,
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) return { error: CELL_TAKEN };
+    throw error;
+  }
+
+  await revalidateInventoryPages(group.projectId);
+  return { message: `Plot ${trimmed} added.` };
+}
+
+// Layout editor "add range": creates plots `from`…`to` (e.g. 1-532) in
+// one go, placed into the category's empty cells — see planRangeFill.
+// Numbers the project already has are skipped, not duplicated.
+class LayoutChanged extends Error {}
+
+export async function addPlotRange(
+  groupId: string,
+  input: { range: string; prefix: string; size: string; block: string; skipRows: string; skipCols: string }
+) {
+  await requireAdmin();
+
+  const range = parseRange(input.range);
+  if ("error" in range) return { error: range.error };
+
+  const group = await prisma.plotGroup.findUnique({ where: { id: groupId } });
+  if (!group) return { error: "Category not found." };
+
+  const [projectPlots, occupied] = await Promise.all([
+    prisma.inventoryItem.findMany({
+      where: { projectId: group.projectId },
+      select: { id: true, code: true, groupId: true, size: true },
+    }),
+    prisma.inventoryItem.findMany({ where: { groupId }, select: { gridRow: true, gridCol: true } }),
+  ]);
+  // Numbers only clash within this category; matching plots that aren't
+  // on any layout (e.g. their category was deleted) are placed instead
+  // of created again.
+  const { existingCodes, unplaced } = rangeCodeSets(projectPlots, groupId, input.size);
+  const unplacedIds = new Map<string, string>();
+  for (const plot of unplaced) {
+    if (!unplacedIds.has(plot.code)) unplacedIds.set(plot.code, plot.id);
+  }
+
+  const plan = planRangeFill({
+    ...range,
+    prefix: input.prefix.trim(),
+    existingCodes,
+    unplacedCodes: new Set(unplacedIds.keys()),
+    occupied,
+    rows: group.rows,
+    columns: group.columns,
+    skipRows: parseNumberList(input.skipRows),
+    skipCols: parseNumberList(input.skipCols),
+    maxRows: MAX_GRID,
+  });
+  if ("error" in plan) return { error: plan.error };
+  if (plan.placements.length === 0) return { error: "All of those plot numbers are already in this category." };
+
+  const size = input.size.trim() || null;
+  const block = input.block.trim() || null;
+  const created = plan.placements.filter((p) => !p.existing);
+  const moved = plan.placements.filter((p) => p.existing);
+  try {
+    await prisma.$transaction(async (tx) => {
+      if (plan.rows > group.rows) await tx.plotGroup.update({ where: { id: groupId }, data: { rows: plan.rows } });
+      if (created.length > 0) {
+        await tx.inventoryItem.createMany({
+          data: created.map((p) => ({
+            projectId: group.projectId,
+            groupId,
+            code: p.code,
+            gridRow: p.gridRow,
+            gridCol: p.gridCol,
+            status: "available" as const,
+            size,
+            block,
+          })),
+        });
+      }
+      if (moved.length > 0) {
+        // One statement for the lot — keeps their status and buyer info.
+        const ids = moved.map((p) => unplacedIds.get(p.code)!);
+        const count = await tx.$executeRaw`
+          UPDATE "InventoryItem" AS i
+          SET "groupId" = ${groupId}, "gridRow" = v.r, "gridCol" = v.c
+          FROM unnest(${ids}::text[], ${moved.map((p) => p.gridRow)}::int[], ${moved.map((p) => p.gridCol)}::int[]) AS v(id, r, c)
+          WHERE i.id = v.id AND i."groupId" IS NULL`;
+        if (count !== moved.length) throw new LayoutChanged();
+      }
+    }, { timeout: 30_000 });
+  } catch (error) {
+    // Someone changed the layout meanwhile — nothing was saved.
+    if (isUniqueViolation(error) || error instanceof LayoutChanged) {
+      return { error: "The layout changed while saving. Please try again." };
+    }
+    throw error;
+  }
+
+  await logActivity({
+    action: "created",
+    resource: "InventoryItem",
+    resourceId: groupId,
+    description: `Added ${created.length} and placed ${moved.length} plots (${input.range.trim()}) on "${group.name}"`,
+  });
+  await revalidateInventoryPages(group.projectId);
+
+  const notes = [
+    created.length ? `${created.length} plots added.` : "",
+    moved.length ? `${moved.length} existing plots placed on the layout.` : "",
+    plan.skipped ? `${plan.skipped} are already in this category and were skipped.` : "",
+    plan.rows > group.rows ? `Layout grew to ${plan.rows} rows.` : "",
+  ];
+  return { message: notes.filter(Boolean).join(" ") };
+}
+
+// Undo for a mistaken range: deletes plots `from`…`to` of this category,
+// but only ones still available with no buyer info — booked/sold plots
+// are never removed in bulk.
+export async function deletePlotRange(groupId: string, input: { range: string; prefix: string }) {
+  await requireAdmin();
+
+  const range = parseRange(input.range);
+  if ("error" in range) return { error: range.error };
+
+  const group = await prisma.plotGroup.findUnique({ where: { id: groupId } });
+  if (!group) return { error: "Category not found." };
+
+  const prefix = input.prefix.trim();
+  const wanted = new Set<string>();
+  for (let n = range.from; n <= range.to; n++) wanted.add(prefix + String(n).padStart(range.pad, "0"));
+
+  const plots = await prisma.inventoryItem.findMany({
+    where: { groupId },
+    select: { id: true, code: true, status: true, clientName: true, fileNumber: true, paymentMode: true },
+  });
+  const inRange = plots.filter((p) => wanted.has(p.code));
+  const deletable = inRange.filter((p) => p.status === "available" && !p.clientName && !p.fileNumber && !p.paymentMode);
+  if (deletable.length === 0) return { error: "No free plots in that range to delete." };
+
+  await prisma.inventoryItem.deleteMany({ where: { id: { in: deletable.map((p) => p.id) } } });
+
+  await logActivity({
+    action: "deleted",
+    resource: "InventoryItem",
+    resourceId: groupId,
+    description: `Deleted ${deletable.length} plots (${input.range.trim()}) from "${group.name}"`,
+  });
+  await revalidateInventoryPages(group.projectId);
+
+  const kept = inRange.length - deletable.length;
+  return {
+    message: `${deletable.length} plots deleted.${kept ? ` ${kept} booked/sold plots were kept.` : ""}`,
+  };
+}
+
+// --- Plot categories (layout pages: ৩ কাঠা, বাণিজ্যিক, …) ---
+
+function parsePlotGroupForm(formData: FormData) {
+  const parsed = plotGroupFormSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (parsed.success) return { ok: true as const, data: parsed.data };
+  const fieldErrors: PlotGroupFormState["fieldErrors"] = {};
+  for (const issue of parsed.error.issues) {
+    const key = issue.path[0] as keyof typeof fieldErrors;
+    if (key) fieldErrors[key] = issue.message;
+  }
+  return { ok: false as const, state: { fieldErrors } };
+}
+
+const SLUG_TAKEN: PlotGroupFormState = { fieldErrors: { slug: "Another category of this project uses this slug." } };
+
+export async function createPlotGroup(
+  projectId: string,
+  _prevState: PlotGroupFormState,
+  formData: FormData
+): Promise<PlotGroupFormState> {
+  await requireAdmin();
+  const parsed = parsePlotGroupForm(formData);
+  if (!parsed.ok) return parsed.state;
+  const data = parsed.data;
+
+  const last = await prisma.plotGroup.findFirst({ where: { projectId }, orderBy: { order: "desc" } });
+  try {
+    const group = await prisma.plotGroup.create({
+      data: { projectId, ...data, description: data.description || null, order: (last?.order ?? -1) + 1 },
+    });
+    await logActivity({
+      action: "created",
+      resource: "PlotGroup",
+      resourceId: group.id,
+      description: `Added plot category "${group.name}"`,
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) return SLUG_TAKEN;
+    throw error;
+  }
+
+  await revalidateInventoryPages(projectId);
+  return { success: true };
+}
+
+export async function updatePlotGroup(
+  id: string,
+  _prevState: PlotGroupFormState,
+  formData: FormData
+): Promise<PlotGroupFormState> {
+  await requireAdmin();
+  const parsed = parsePlotGroupForm(formData);
+  if (!parsed.ok) return parsed.state;
+  const data = parsed.data;
+
+  const existing = await prisma.plotGroup.findUnique({ where: { id } });
+  if (!existing) return { error: "Category not found." };
+
+  // Shrinking the grid must not cut off plots already placed there.
+  const outside = await prisma.inventoryItem.count({
+    where: { groupId: id, OR: [{ gridRow: { gt: data.rows } }, { gridCol: { gt: data.columns } }] },
+  });
+  if (outside > 0) {
+    const plots = outside === 1 ? "1 plot is" : `${outside} plots are`;
+    return { error: `${plots} outside the new size. Move or remove them first.` };
+  }
+
+  try {
+    await prisma.plotGroup.update({
+      where: { id },
+      data: { ...data, description: data.description || null },
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) return SLUG_TAKEN;
+    throw error;
+  }
+
+  await logActivity({
+    action: "updated",
+    resource: "PlotGroup",
+    resourceId: id,
+    description: `Updated plot category "${data.name}"`,
+  });
+  await revalidateInventoryPages(existing.projectId);
+  return { success: true };
+}
+
+// Deleting a category keeps its plots (with their buyer info) — they
+// just come off the layout and can be placed again later.
+export async function deletePlotGroup(id: string) {
+  await requireAdmin();
+  const group = await prisma.plotGroup.findUnique({ where: { id } });
+  if (!group) return;
+
+  await prisma.$transaction([
+    prisma.inventoryItem.updateMany({
+      where: { groupId: id },
+      data: { groupId: null, gridRow: null, gridCol: null },
+    }),
+    prisma.plotGroup.delete({ where: { id } }),
+  ]);
+
+  await logActivity({
+    action: "deleted",
+    resource: "PlotGroup",
+    resourceId: id,
+    description: `Deleted plot category "${group.name}"`,
+  });
+  await revalidateInventoryPages(group.projectId);
+}
+
+export async function movePlotGroup(id: string, direction: "up" | "down") {
+  await requireAdmin();
+
+  const current = await prisma.plotGroup.findUnique({ where: { id } });
+  if (!current) return;
+
+  const groups = await prisma.plotGroup.findMany({
+    where: { projectId: current.projectId },
+    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+  });
+  const index = groups.findIndex((g) => g.id === id);
+  const swapIndex = direction === "up" ? index - 1 : index + 1;
+  if (index === -1 || swapIndex < 0 || swapIndex >= groups.length) return;
+
+  // Re-number everything, so groups that share an order value still swap.
+  const reordered = [...groups];
+  [reordered[index], reordered[swapIndex]] = [reordered[swapIndex], reordered[index]];
+  await prisma.$transaction(
+    reordered.map((g, i) => prisma.plotGroup.update({ where: { id: g.id }, data: { order: i } }))
+  );
+
+  await revalidateInventoryPages(current.projectId);
 }
 
 // --- Payment Plans ---

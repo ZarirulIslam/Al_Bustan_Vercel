@@ -2,6 +2,8 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { SectionItemsManager } from "@/components/admin/SectionItemsManager";
+import { InventoryManager } from "@/components/admin/InventoryManager";
+import { PlotLayoutEditor } from "@/components/admin/PlotLayoutEditor";
 import { useActionFeedback } from "@/components/admin/AdminToaster";
 import { EditorShell, type EditorStep } from "@/components/admin/project-editor/EditorShell";
 import {
@@ -9,6 +11,7 @@ import {
   GalleryField,
   Grid,
   ImageField,
+  IntroVideoField,
   MapFields,
   NameSlugFields,
   RichField,
@@ -21,7 +24,7 @@ import {
 } from "@/components/admin/project-editor/fields";
 import type { ProjectFormState } from "@/lib/admin/projectSchema";
 import type { ProjectSectionItemsBySection } from "@/lib/data/projectSectionItems";
-import type { Project } from "@/lib/types";
+import type { InventoryItem, PlotGroup, Project } from "@/lib/types";
 
 // CMS editor for Land / Plot projects. Its steps are the sections of the
 // Bangla land page (src/components/project/LandProjectView.tsx), in page
@@ -32,10 +35,14 @@ export function LandProjectEditor({
   action,
   project,
   sections,
+  inventory,
+  plotGroups,
 }: {
   action: (prev: ProjectFormState, formData: FormData) => Promise<ProjectFormState>;
   project?: Project;
   sections?: ProjectSectionItemsBySection;
+  inventory?: InventoryItem[];
+  plotGroups?: PlotGroup[];
 }) {
   const [state, formAction, isPending] = useActionState(action, {});
   useActionFeedback(state, "Project saved.");
@@ -107,7 +114,7 @@ export function LandProjectEditor({
       number: "02",
       label: "প্রকল্প পরিচিতি",
       title: "প্রকল্প পরিচিতি",
-      description: "Introduction text, three figures, the মাস্টার প্ল্যান / ব্রোশিওর buttons and the cover photo.",
+      description: "Introduction text, three figures, the মাস্টার প্ল্যান / ব্রোশিওর buttons and the intro video (or the cover photo when there is no video).",
       anchor: "about",
       count: count("stat"),
       fieldNames: ["fullDescription"],
@@ -119,8 +126,13 @@ export function LandProjectEditor({
             label="Cover photo"
             existingUrl={project?.coverImage.url}
             required={!project}
-            hint="Shown beside the introduction and on project cards."
+            hint="Shown on project cards, and beside the introduction when there is no intro video."
             onUploadingChange={track("cover")}
+          />
+          <IntroVideoField
+            project={project}
+            hint="Plays silently on a loop beside the introduction, in place of the cover photo."
+            onUploadingChange={track("introVideo")}
           />
           <Grid>
             <ImageField
@@ -269,9 +281,45 @@ export function LandProjectEditor({
       extra: items("partner", "Sister concerns"),
     },
     {
-      id: "booking",
+      id: "plot-list",
       group: "Page sections",
       number: "13",
+      label: "প্লট তালিকা",
+      title: "প্লট তালিকা",
+      description:
+        "Plot categories (৩ কাঠা, বাণিজ্যিক, …), each with its own layout page where visitors see which plots are free, sold or booked and can send a booking request. For booked or sold plots, add the client's name and payment (এককালীন / কিস্তি, with installments remaining).",
+      anchor: "plot-list",
+      count: inventory?.length,
+      extra:
+        project && inventory && plotGroups ? (
+          <>
+            <PlotLayoutEditor
+              projectId={project.id}
+              projectSlug={project.slug}
+              published={project.published}
+              groups={plotGroups}
+              items={inventory}
+            />
+            {/* Every category in one list — for a search across the whole
+                project. Day-to-day work happens in each category above. */}
+            <details className="group border-t border-limestone-300 pt-6">
+              <summary className="cursor-pointer text-base text-ink">
+                All plots, every category ({inventory.length})
+                <span className="ml-2 text-sm text-ink-soft">— search or delete across the whole project</span>
+              </summary>
+              <div className="mt-4">
+                <InventoryManager projectId={project.id} category="land_plot" items={inventory} groups={plotGroups} />
+              </div>
+            </details>
+          </>
+        ) : (
+          <LockedNote />
+        ),
+    },
+    {
+      id: "booking",
+      group: "Page sections",
+      number: "14",
       label: "প্লট বুকিং",
       title: "মাস্টার প্ল্যান ও প্লট বুকিং",
       description: "Master plan and brochure come from step 02. Bookings arrive in Leads & Inquiries.",

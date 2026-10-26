@@ -30,6 +30,7 @@ export function mapProject(p: PrismaProjectWithImages): Project {
     nearbyFacilities: p.nearbyFacilities,
     brochureUrl: p.brochureUrl,
     masterPlanUrl: p.masterPlanUrl,
+    introVideoUrl: p.introVideoUrl,
     bedroomOptions: p.bedroomOptions,
     floors: p.floors,
     parkingSpaces: p.parkingSpaces,

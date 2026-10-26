@@ -1,7 +1,7 @@
 import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
-import { validateImageFile, validateDocumentFile, type StorageProvider } from "@/lib/storage/types";
+import { validateImageFile, validateDocumentFile, validateVideoFile, type StorageProvider } from "@/lib/storage/types";
 
 // Writes uploaded files straight to /public/uploads/<subdir>/. This
 // is the simplest thing that actually works for local development
@@ -30,6 +30,11 @@ export class LocalStorageProvider implements StorageProvider {
 
   async saveDocument(file: File, subdir: string): Promise<string> {
     validateDocumentFile(file);
+    return this.saveFile(file, subdir);
+  }
+
+  async saveVideo(file: File, subdir: string): Promise<string> {
+    validateVideoFile(file);
     return this.saveFile(file, subdir);
   }
 

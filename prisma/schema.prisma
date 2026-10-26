@@ -144,6 +144,7 @@ model Project {
   nearbyFacilities String   @default("") // rich text HTML — e.g. nearby schools, hospitals, highways; separate from `features` (on-site amenities)
   brochureUrl      String? // PDF
   masterPlanUrl    String? // image
+  introVideoUrl    String? // uploaded MP4/WebM — replaces the cover photo in the land page's প্রকল্প পরিচিতি section
   block            String? // e.g. "Block C" — which block/section of the development
   facing           String? // e.g. "South-facing" — plot/unit orientation
   frontRoadWidth   String? // e.g. "30 ft" — width of the road in front of the plot/unit
@@ -183,6 +184,7 @@ model Project {
   coverImage   ProjectImage?   @relation("CoverImage", fields: [coverImageId], references: [id])
   gallery      ProjectImage[]  @relation("GalleryImages")
   inventory    InventoryItem[]
+  plotGroups   PlotGroup[]
   paymentPlans PaymentPlan[]
   faqs         ProjectFaq[]
   testimonials Testimonial[]
@@ -226,17 +228,67 @@ model InventoryItem {
   block     String?
   roadWidth String?
 
+  // Where the plot sits on its category's layout grid (see PlotGroup).
+  // All three are null for a plot that isn't placed on a layout yet.
+  // Rows/columns are 1-based.
+  groupId String?
+  group   PlotGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  gridRow Int?
+  gridCol Int?
+
   // Flat/Apartment-only
   floor     String?
   bedrooms  String?
   bathrooms String?
   parking   String?
 
+  // Buyer / allotment — filled in once the plot or unit is booked or
+  // sold. Shown on the public page (only while status isn't
+  // `available`) — except `fileNumber`, which is admin-only. `remainingInstallments` is updated by the admin as
+  // payments come in; both installment counts are ignored unless
+  // `paymentMode` is `installment`.
+  clientName            String?
+  fileNumber            String?
+  paymentMode           PaymentMode?
+  totalInstallments     Int?
+  remainingInstallments Int?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([groupId, gridRow, gridCol]) // one plot per cell
   @@index([projectId])
   @@index([status])
+}
+
+// A plot category of a land project — e.g. "৩ কাঠা", "বাণিজ্যিক",
+// "কন্ডোমিনিয়াম" — each with its own public page
+// (/projects/[slug]/plots/[groupSlug]) showing its plots on a
+// rows × columns layout grid, like a bus seat map. Cells without a plot
+// are roads / gaps. Managed from the Land editor's প্লট তালিকা step.
+model PlotGroup {
+  id          String  @id @default(cuid())
+  projectId   String
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String // e.g. "৩ কাঠা"
+  slug        String // e.g. "3-katha" — unique within the project
+  description String?
+  rows        Int     @default(6)
+  columns     Int     @default(10)
+  order       Int     @default(0)
+
+  plots InventoryItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, slug])
+  @@index([projectId])
+}
+
+enum PaymentMode {
+  one_time // এককালীন
+  installment // কিস্তি
 }
 
 // A project can offer several payment plans (e.g. "Cash Payment",

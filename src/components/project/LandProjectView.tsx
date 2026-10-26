@@ -9,11 +9,13 @@ import { VideoShowcase } from "@/components/project/VideoShowcase";
 import { LiteYouTube } from "@/components/project/LiteYouTube";
 import { PlotTypeTabs } from "@/components/project/PlotTypeTabs";
 import { PlotBookingForm } from "@/components/project/PlotBookingForm";
+import { PlotLayoutTabs } from "@/components/project/PlotLayoutTabs";
+import { plotTabHash } from "@/lib/plotLayout";
 import { Reveal } from "@/components/project/Reveal";
 import { ArrowIcon, DownloadIcon, IconChip, IconTileGrid, directionsUrl } from "@/components/project/shared";
 import { isEmptyRichHtml } from "@/lib/richText/shared";
 import type { ProjectSectionItemsBySection } from "@/lib/data/projectSectionItems";
-import type { Project } from "@/lib/types";
+import type { PlotGroup, Project, PublicPlot } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 // Land / Plot project detail page — Bangla. Holds exactly the sections of
@@ -22,7 +24,7 @@ import { cn } from "@/lib/utils";
 //  fixed text) · 04 বৈশিষ্ট্যসমূহ · 05 উপলব্ধ প্লটসমূহ · 06 লক্ষ্য (photo
 //  cards scroll past fixed text) · 07 গ্যালারি · 08 ভিডিও · 09 লোকেশন
 //  ম্যাপ · 10 সুরক্ষিত জোন · 11 সুযোগ-সুবিধা · 12 অঙ্গপ্রতিষ্ঠান ·
-//  13 মাস্টার প্ল্যান ও প্লট বুকিং
+//  13 প্লট তালিকা · 14 মাস্টার প্ল্যান ও প্লট বুকিং
 // Content comes from the Land editor in the CMS; a section with nothing
 // to show is skipped.
 
@@ -100,7 +102,16 @@ const btn = {
   outline: cn(pillBtn, "border border-garden-500 text-garden-600 hover:bg-garden-50"),
 };
 
-export function LandProjectView({ project, sections }: { project: Project; sections: ProjectSectionItemsBySection }) {
+export function LandProjectView({
+  project,
+  sections,
+  plotSections,
+}: {
+  project: Project;
+  sections: ProjectSectionItemsBySection;
+  // Plot categories that have plots on their layout, in order.
+  plotSections: { group: PlotGroup; plots: PublicPlot[] }[];
+}) {
   const name = project.name;
   const photos = [project.coverImage, ...project.gallery].filter((img) => img.url);
   const carouselImages = project.gallery.length > 0 ? project.gallery : photos;
@@ -168,15 +179,58 @@ export function LandProjectView({ project, sections }: { project: Project; secti
                 )}
               </div>
             )}
+
+            {/* Plot category shortcuts — each opens its layout below. */}
+            {plotSections.length > 0 && (
+              <div className="mt-8">
+                <p className="text-sm font-semibold text-ink">প্লট দেখুন ও বুক করুন</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {plotSections.map(({ group, plots }) => (
+                    <a
+                      key={group.id}
+                      href={`#${plotTabHash(group)}`}
+                      className="inline-flex items-center gap-2 rounded-full border border-garden-500 bg-white px-4 py-2 text-sm font-semibold text-garden-700 transition-colors hover:bg-garden-500 hover:text-white"
+                    >
+                      {group.name}
+                      <span className="text-xs font-medium opacity-80">
+                        {bn(plots.filter((p) => p.status === "available").length)} খালি
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          <Reveal className="relative">
-            <div aria-hidden className="absolute -inset-3 -rotate-2 rounded-[2rem] bg-gradient-to-br from-garden-100 to-brass-50" />
-            <div className="relative aspect-square overflow-hidden rounded-[1.75rem] border-[6px] border-white shadow-card-hover">
-              <Image src={project.coverImage.url} alt={project.coverImage.alt} fill priority sizes="(min-width: 1024px) 45vw, 100vw" className="object-cover" />
-              <span className="absolute left-4 top-4">
-                <ProjectStatusBadge status={project.status} />
-              </span>
+          {/* Intro video (silent loop) when uploaded, else the cover photo. */}
+          <Reveal className="relative mx-auto w-full max-w-[480px] lg:max-w-[500px]">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -inset-3 rounded-3xl bg-gradient-to-tr from-garden-500/25 via-brass-light/15 to-transparent opacity-70 blur-2xl"
+            />
+            <div className="relative overflow-hidden rounded-3xl border-4 border-white bg-white shadow-[0_25px_60px_-15px_rgba(28,91,62,0.35)] ring-1 ring-ink/10">
+              <div className="relative aspect-square w-full overflow-hidden bg-black">
+                {project.introVideoUrl ? (
+                  <video
+                    src={project.introVideoUrl}
+                    poster={project.coverImage.url || undefined}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                    aria-label={`${name} — ভিডিও`}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : (
+                  <>
+                    <Image src={project.coverImage.url} alt={project.coverImage.alt} fill priority sizes="(min-width: 1024px) 500px, 100vw" className="object-cover" />
+                    <span className="absolute left-4 top-4">
+                      <ProjectStatusBadge status={project.status} />
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           </Reveal>
         </div>
@@ -516,7 +570,24 @@ export function LandProjectView({ project, sections }: { project: Project; secti
         </section>
       )}
 
-      {/* ── 13 মাস্টার প্ল্যান ও প্লট বুকিং ──────────────────────── */}
+      {/* ── 13 প্লট তালিকা — the plot layout itself, one tab per
+          category; click a plot for details or to book it ──────── */}
+      {plotSections.length > 0 && (
+        <section id="plot-list" className="scroll-mt-24 bg-white py-20 md:py-28">
+          <div className="container-content">
+            <CenteredHeading
+              pill="প্লট তালিকা"
+              title="আপনার পছন্দের প্লট বেছে নিন"
+              lead="লেআউটে দেখুন কোন প্লট খালি আছে, কোনটি বিক্রিত — যেকোনো প্লটে ক্লিক করে বিস্তারিত দেখুন, আর খালি প্লট সরাসরি বুক করুন।"
+            />
+            <div className="mt-12">
+              <PlotLayoutTabs projectId={project.id} projectName={name} projectSlug={project.slug} sections={plotSections} />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── 14 মাস্টার প্ল্যান ও প্লট বুকিং ──────────────────────── */}
       <section id="booking" className="relative scroll-mt-24 overflow-hidden py-20 md:py-28">
         <div aria-hidden className="absolute inset-0 bg-gradient-to-br from-garden-50 via-limestone to-brass-50/60" />
         <div className="container-content relative grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1.15fr]">

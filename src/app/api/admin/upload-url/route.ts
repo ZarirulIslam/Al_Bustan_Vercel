@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseAdminConfig } from "@/lib/storage/supabase";
-import { ALLOWED_IMAGE_TYPES, ALLOWED_DOCUMENT_TYPES } from "@/lib/storage/types";
+import { ALLOWED_IMAGE_TYPES, ALLOWED_DOCUMENT_TYPES, ALLOWED_VIDEO_TYPES } from "@/lib/storage/types";
 import { randomUUID } from "crypto";
 
 // Why this route exists: Vercel Serverless Functions enforce a hard
@@ -25,7 +25,7 @@ import { randomUUID } from "crypto";
 //      to our platform's request-body limit.
 //   4. Only the resulting public URL (a short string) is later
 //      submitted with the rest of the admin form.
-const ALLOWED_SUBDIRS = ["projects", "blog", "settings", "gallery", "brochures", "hero", "testimonials", "team", "avatars"] as const;
+const ALLOWED_SUBDIRS = ["projects", "blog", "settings", "gallery", "brochures", "hero", "testimonials", "team", "avatars", "videos"] as const;
 type AllowedSubdir = (typeof ALLOWED_SUBDIRS)[number];
 
 function isAllowedSubdir(value: unknown): value is AllowedSubdir {
@@ -54,17 +54,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid upload category." }, { status: 400 });
   }
 
-  const isBrochure = subdir === "brochures";
-  const allowedTypes = isBrochure ? ALLOWED_DOCUMENT_TYPES : ALLOWED_IMAGE_TYPES;
+  const { allowedTypes, typeError } =
+    subdir === "brochures"
+      ? { allowedTypes: ALLOWED_DOCUMENT_TYPES, typeError: "Unsupported file type. Use PDF." }
+      : subdir === "videos"
+        ? { allowedTypes: ALLOWED_VIDEO_TYPES, typeError: "Unsupported video type. Use MP4 or WebM." }
+        : { allowedTypes: ALLOWED_IMAGE_TYPES, typeError: "Unsupported image type. Use JPEG, PNG, WebP, or GIF." };
   if (typeof contentType !== "string" || !allowedTypes.includes(contentType)) {
-    return NextResponse.json(
-      {
-        error: isBrochure
-          ? "Unsupported file type. Use PDF."
-          : "Unsupported image type. Use JPEG, PNG, WebP, or GIF.",
-      },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: typeError }, { status: 400 });
   }
 
   try {

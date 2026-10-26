@@ -70,6 +70,9 @@ const plotBookingSchema = z.object({
   plotNo: z.string().trim().optional(),
   email: z.string().trim().email("email"),
   size: z.string().trim().min(1, "required"),
+  // Set when booking a specific plot from a plot layout page.
+  inventoryItemId: z.string().optional(),
+  plotCategory: z.string().trim().optional(),
 });
 
 export interface PlotBookingState {
@@ -90,7 +93,16 @@ export async function submitPlotBooking(_prev: PlotBookingState, formData: FormD
   }
   const d = parsed.data;
 
+  // A plot picked on the layout page must still be free (it may have
+  // been sold since the page was loaded).
+  if (d.inventoryItemId) {
+    const plot = await prisma.inventoryItem.findUnique({ where: { id: d.inventoryItemId } });
+    if (!plot || plot.projectId !== d.projectId) return { error: "generic" };
+    if (plot.status !== "available") return { error: "unavailable" };
+  }
+
   const message = [
+    ...(d.plotCategory ? [`ক্যাটাগরি: ${d.plotCategory}`] : []),
     `ব্লক: ${d.block}`,
     `প্লট নং: ${d.plotNo || "—"}`,
     `আয়তন (কাঠা): ${d.size}`,
@@ -103,7 +115,7 @@ export async function submitPlotBooking(_prev: PlotBookingState, formData: FormD
       name: d.name,
       phone: d.phone,
       email: d.email,
-      subject: `Plot booking: ${d.projectName}`,
+      subject: d.plotNo ? `Plot booking: ${d.projectName} — plot ${d.plotNo}` : `Plot booking: ${d.projectName}`,
       inquiryType: "buying",
       propertyType: "land_plot",
       message,

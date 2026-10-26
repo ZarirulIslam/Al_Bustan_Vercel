@@ -1,4 +1,4 @@
-import type { InventoryStatus, ProjectCategory } from "@/lib/types";
+import type { InventoryStatus, PaymentMode, ProjectCategory } from "@/lib/types";
 
 // Land / Plot project pages are written in Bangla, Flat / Apartment
 // pages in English. Section copy that belongs to one layout lives in
@@ -9,6 +9,9 @@ export type ProjectLocale = "en" | "bn";
 export function localeForCategory(category: ProjectCategory): ProjectLocale {
   return category === "land_plot" ? "bn" : "en";
 }
+
+const BN_DIGITS = "০১২৩৪৫৬৭৮৯";
+const bnDigits = (n: number) => String(n).replace(/\d/g, (d) => BN_DIGITS[Number(d)]);
 
 export const BRAND_LINE = "Building a Better Tomorrow.";
 
@@ -35,6 +38,12 @@ interface SharedCopy {
     price: string;
     status: string;
     statuses: Record<InventoryStatus, string>;
+    client: string;
+    payment: string;
+    paymentModes: Record<PaymentMode, string>;
+    // "24 of 36 left" — the installment column for installment buyers.
+    installmentsLeft: (remaining: number, total: number | null) => string;
+    paidInFull: string;
   };
   payment: { bookingAmount: string; downPayment: string };
   video: {
@@ -81,6 +90,12 @@ export const SHARED_COPY: Record<ProjectLocale, SharedCopy> = {
       price: "Price",
       status: "Status",
       statuses: { available: "Available", reserved: "Reserved", sold: "Sold" },
+      client: "Client",
+      payment: "Payment",
+      paymentModes: { one_time: "One-time", installment: "Installment" },
+      installmentsLeft: (remaining, total) =>
+        total ? `${remaining} of ${total} installments left` : `${remaining} installments left`,
+      paidInFull: "Fully paid",
     },
     payment: { bookingAmount: "Booking Amount", downPayment: "Down Payment" },
     video: {
@@ -126,6 +141,12 @@ export const SHARED_COPY: Record<ProjectLocale, SharedCopy> = {
       price: "মূল্য",
       status: "অবস্থা",
       statuses: { available: "খালি আছে", reserved: "সংরক্ষিত", sold: "বিক্রিত" },
+      client: "ক্লায়েন্টের নাম",
+      payment: "পেমেন্ট",
+      paymentModes: { one_time: "এককালীন", installment: "কিস্তি" },
+      installmentsLeft: (remaining, total) =>
+        total ? `মোট ${bnDigits(total)}টির মধ্যে ${bnDigits(remaining)}টি কিস্তি বাকি` : `${bnDigits(remaining)}টি কিস্তি বাকি`,
+      paidInFull: "সম্পূর্ণ পরিশোধিত",
     },
     payment: { bookingAmount: "বুকিং মানি", downPayment: "ডাউন পেমেন্ট" },
     video: {

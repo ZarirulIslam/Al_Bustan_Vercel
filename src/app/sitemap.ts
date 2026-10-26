@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getAllPublishedProjects } from "@/lib/data/projects";
 import { getAllPublishedPosts } from "@/lib/data/blog";
+import { getPublishedPlotGroupPaths } from "@/lib/data/plotGroups";
 import { getBaseUrl } from "@/lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -18,9 +19,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/contact`, changeFrequency: "monthly", priority: 0.6 },
   ];
 
-  const [projects, posts] = await Promise.all([
+  const [projects, posts, plotGroupPaths] = await Promise.all([
     getAllPublishedProjects(),
     getAllPublishedPosts(),
+    getPublishedPlotGroupPaths(),
   ]);
 
   // A noindex'd project/post shouldn't be listed in the sitemap —
@@ -44,5 +46,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }));
 
-  return [...staticPages, ...projectPages, ...blogPages];
+  const plotPages: MetadataRoute.Sitemap = plotGroupPaths.map((page) => ({
+    url: `${baseUrl}${page.path}`,
+    lastModified: page.updatedAt,
+    changeFrequency: "weekly",
+    priority: 0.7,
+  }));
+
+  return [...staticPages, ...projectPages, ...plotPages, ...blogPages];
 }

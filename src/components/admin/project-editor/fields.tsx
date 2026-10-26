@@ -5,6 +5,7 @@ import Image from "next/image";
 import { CoverImageUploadField } from "@/components/admin/CoverImageUploadField";
 import { GalleryImageUploadField } from "@/components/admin/GalleryImageUploadField";
 import { BrochureUploadField } from "@/components/admin/BrochureUploadField";
+import { VideoUploadField } from "@/components/admin/VideoUploadField";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { galleryCategoriesFor } from "@/lib/projectSections";
 import type { Project, ProjectCategory } from "@/lib/types";
@@ -309,6 +310,27 @@ export function BrochureField({
       <BrochureUploadField
         fieldName="brochureUrl"
         existingUrl={project?.brochureUrl}
+        onUploadingChange={onUploadingChange}
+      />
+    </Field>
+  );
+}
+
+export function IntroVideoField({
+  project,
+  hint,
+  onUploadingChange,
+}: {
+  project?: Project;
+  hint?: string;
+  onUploadingChange: (uploading: boolean) => void;
+}) {
+  return (
+    <Field label="Intro video" htmlFor="introVideoUrl" hint={hint}>
+      <VideoUploadField
+        fieldName="introVideoUrl"
+        removeFieldName="removeIntroVideo"
+        existingUrl={project?.introVideoUrl}
         onUploadingChange={onUploadingChange}
       />
     </Field>
