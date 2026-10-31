@@ -17,6 +17,7 @@ function mapSettings(row: WebsiteSettings): SiteSettings {
   return {
     companyName: row.companyName,
     logoUrl: row.logoUrl,
+    faviconUrl: row.faviconUrl,
     phone: row.phone,
     whatsapp: row.whatsapp,
     email: row.email,

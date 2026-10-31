@@ -268,6 +268,7 @@ export interface SalesEmployee {
 export interface SiteSettings {
   companyName: string;
   logoUrl: string | null;
+  faviconUrl: string | null;
   phone: string;
   whatsapp: string;
   email: string;

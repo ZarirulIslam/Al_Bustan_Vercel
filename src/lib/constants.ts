@@ -9,6 +9,7 @@ import type { AboutPageSettings, HomepageSettings, SiteSettings } from "./types"
 export const defaultSiteSettings: SiteSettings = {
   companyName: "Al Bustan Communities Limited",
   logoUrl: "/images/logo.png",
+  faviconUrl: null,
   phone: "+000 0000 0000",
   whatsapp: "https://wa.me/0000000000",
   email: "info@albustan-placeholder.com",

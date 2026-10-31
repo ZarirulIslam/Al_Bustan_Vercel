@@ -609,6 +609,7 @@ model WebsiteSettings {
   id             String   @id @default("singleton")
   companyName    String
   logoUrl        String?
+  faviconUrl     String?
   phone          String
   whatsapp       String
   email          String

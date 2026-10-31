@@ -15,7 +15,7 @@ function SubmitButton({ disabledExtra }: { disabledExtra: boolean }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending || disabledExtra}>
-      {pending ? "Saving…" : disabledExtra ? "Waiting for logo upload…" : "Save Settings"}
+      {pending ? "Saving…" : disabledExtra ? "Waiting for image upload…" : "Save Settings"}
     </Button>
   );
 }
@@ -55,6 +55,7 @@ export function SettingsForm({
   const [state, formAction] = useActionState(action, {});
   useActionFeedback(state, "Website settings saved.");
   const [logoUploading, setLogoUploading] = useState(false);
+  const [faviconUploading, setFaviconUploading] = useState(false);
 
   return (
     <form action={formAction} className="space-y-10">
@@ -84,6 +85,19 @@ export function SettingsForm({
               existingUrl={settings.logoUrl ?? undefined}
               onUploadingChange={setLogoUploading}
             />
+          </Field>
+
+          <Field label="Favicon" htmlFor="faviconFile">
+            <CoverImageUploadField
+              fieldName="faviconUrl"
+              subdir="settings"
+              existingUrl={settings.faviconUrl ?? "/apple-icon.png"}
+              containPreview
+              onUploadingChange={setFaviconUploading}
+            />
+            <p className="mt-1 text-xs text-ink-soft">
+              The icon in browser tabs and bookmarks. Use a square PNG, at least 180×180px.
+            </p>
           </Field>
         </div>
       </section>
@@ -232,7 +246,7 @@ export function SettingsForm({
         </div>
       </section>
 
-      <SubmitButton disabledExtra={logoUploading} />
+      <SubmitButton disabledExtra={logoUploading || faviconUploading} />
     </form>
   );
 }

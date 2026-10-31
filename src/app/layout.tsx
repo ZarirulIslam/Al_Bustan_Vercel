@@ -58,6 +58,15 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: settings.companyName,
       type: "website",
     },
+    // Set here rather than with app/icon.png-style files, which would
+    // override this and leave the /admin/settings favicon with no effect.
+    // The defaults live in public/ for when no favicon has been uploaded.
+    icons: settings.faviconUrl
+      ? { icon: settings.faviconUrl, apple: settings.faviconUrl }
+      : {
+          icon: [{ url: "/favicon.ico", sizes: "any" }, { url: "/icon.png", type: "image/png", sizes: "32x32" }],
+          apple: "/apple-icon.png",
+        },
   };
 }
 

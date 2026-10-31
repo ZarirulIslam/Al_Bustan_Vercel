@@ -58,6 +58,9 @@ export async function updateSettings(
   const rawLogoUrl = String(formData.get("logoUrl") || "");
   const newLogoUrl = isPlausibleImageUrl(rawLogoUrl) ? rawLogoUrl : undefined;
 
+  const rawFaviconUrl = String(formData.get("faviconUrl") || "");
+  const newFaviconUrl = isPlausibleImageUrl(rawFaviconUrl) ? rawFaviconUrl : undefined;
+
   await prisma.websiteSettings.upsert({
     where: { id: "singleton" },
     update: {
@@ -80,11 +83,13 @@ export async function updateSettings(
       footerLegalText: data.footerLegalText,
       ...footerContact,
       ...(newLogoUrl ? { logoUrl: newLogoUrl } : {}),
+      ...(newFaviconUrl ? { faviconUrl: newFaviconUrl } : {}),
     },
     create: {
       id: "singleton",
       companyName: data.companyName,
       logoUrl: newLogoUrl ?? null,
+      faviconUrl: newFaviconUrl ?? null,
       phone: data.phone,
       whatsapp: data.whatsapp,
       email: data.email,
@@ -107,6 +112,10 @@ export async function updateSettings(
 
   if (newLogoUrl && existing?.logoUrl && existing.logoUrl !== newLogoUrl) {
     await deleteImage(existing.logoUrl);
+  }
+
+  if (newFaviconUrl && existing?.faviconUrl && existing.faviconUrl !== newFaviconUrl) {
+    await deleteImage(existing.faviconUrl);
   }
 
   await logActivity({

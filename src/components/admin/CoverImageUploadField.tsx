@@ -10,12 +10,14 @@ export function CoverImageUploadField({
   subdir,
   existingUrl,
   required,
+  containPreview,
   onUploadingChange,
 }: {
   fieldName: string;
   subdir: "projects" | "blog" | "settings" | "gallery" | "testimonials" | "team";
   existingUrl?: string;
   required?: boolean;
+  containPreview?: boolean;
   onUploadingChange?: (uploading: boolean) => void;
 }) {
   const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
@@ -67,7 +69,7 @@ export function CoverImageUploadField({
 
       {previewUrl && (
         <div className="relative mt-3 h-32 w-48 overflow-hidden rounded border border-limestone-300">
-          <Image src={previewUrl} alt="Preview" fill sizes="192px" className="object-cover" />
+          <Image src={previewUrl} alt="Preview" fill sizes="192px" className={containPreview ? "object-contain" : "object-cover"} />
         </div>
       )}
 
