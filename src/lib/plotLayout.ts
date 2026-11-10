@@ -153,3 +153,58 @@ export function planRangeFill({
   const lastRow = placements.reduce((max, p) => Math.max(max, p.gridRow), 0);
   return { placements, skipped, rows: Math.max(rows, lastRow) };
 }
+
+// --- Blocks (main category) → sizes (sub-category) ---
+
+// Sub-categories offered in the admin form; any other name works too.
+// The English part builds the page address (Block A + ৩ কাঠা → a-3-katha).
+export const PLOT_SIZE_PRESETS: { name: string; slug: string }[] = [
+  { name: "৩ কাঠা", slug: "3-katha" },
+  { name: "৫ কাঠা", slug: "5-katha" },
+  { name: "১০ কাঠা", slug: "10-katha" },
+  { name: "২০ কাঠা", slug: "20-katha" },
+  { name: "বাণিজ্যিক", slug: "commercial" },
+  { name: "বিজনেস", slug: "business" },
+  { name: "কন্ডোমিনিয়াম", slug: "condominium" },
+];
+
+const slugPart = (text: string) =>
+  toAscii(text)
+    .toLowerCase()
+    .replace(/^(block|ব্লক)\s*/i, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+// Suggested page address for a category: "Block A" + "৩ কাঠা" → "a-3-katha".
+export function suggestGroupSlug(block: string, name: string): string {
+  const size = PLOT_SIZE_PRESETS.find((p) => p.name === name.trim())?.slug ?? slugPart(name);
+  return [slugPart(block), size].filter(Boolean).join("-");
+}
+
+// "A" → "ব্লক A"; names that already say block ("Block C", "ব্লক খ")
+// are shown as typed.
+export const blockLabel = (block: string) => (/block|ব্লক/i.test(block) ? block : `ব্লক ${block}`);
+
+// "Block A · ৩ কাঠা" — a category's full name where blocks aren't
+// shown around it (dropdowns, booking requests, popups).
+export const groupFullName = (group: Pick<PlotGroup, "block" | "name">) =>
+  group.block ? `${blockLabel(group.block)} · ${group.name}` : group.name;
+
+const blockKeyOf = (block: string | null) => block?.trim().toLowerCase() || "";
+
+// Groups items (categories, or sections holding a category) by block, in
+// the order each block first appears — so a block's place follows its
+// first category. Categories without a block come last, as `block: null`.
+export function groupByBlock<T>(items: T[], getGroup: (item: T) => Pick<PlotGroup, "block">) {
+  const blocks = new Map<string, { key: string; block: string | null; items: T[] }>();
+  for (const item of items) {
+    const raw = getGroup(item).block?.trim() || null;
+    const key = blockKeyOf(raw);
+    if (!blocks.has(key)) blocks.set(key, { key, block: raw, items: [] });
+    blocks.get(key)!.items.push(item);
+  }
+  const list = [...blocks.values()];
+  return [...list.filter((b) => b.block), ...list.filter((b) => !b.block)];
+}
+
+export const sameBlock = (a: string | null, b: string | null) => blockKeyOf(a) === blockKeyOf(b);

@@ -65,7 +65,7 @@ export default async function ProjectsPage({
             <span aria-hidden className="h-px w-12 bg-current" />
             Signature developments
           </p>
-          <h2 className="mt-5 max-w-2xl font-body text-4xl font-bold leading-[1.08] tracking-tight md:text-5xl">
+          <h2 className="mt-5 max-w-2xl font-body text-3xl font-bold leading-[1.08] tracking-tight sm:text-4xl md:text-5xl">
             Designed for a better way of living.
           </h2>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-soft md:text-lg">

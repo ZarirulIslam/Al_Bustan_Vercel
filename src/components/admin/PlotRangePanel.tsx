@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { GENERIC_ERROR, useAdminToast } from "@/components/admin/AdminToaster";
 import { addPlotRange, deletePlotRange } from "@/app/admin/(dashboard)/projects/actions";
 import { MAX_GRID } from "@/lib/admin/plotGroupSchema";
-import { parseNumberList, parseRange, planRangeFill, rangeCodeSets } from "@/lib/plotLayout";
+import { groupFullName, parseNumberList, parseRange, planRangeFill, rangeCodeSets } from "@/lib/plotLayout";
 import type { InventoryItem, PlotGroup } from "@/lib/types";
 
 const inputClass =
@@ -37,7 +37,7 @@ export function PlotRangePanel({
 }) {
   const toast = useAdminToast();
   const [isPending, startTransition] = useTransition();
-  const [values, setValues] = useState({ range: "", prefix: "", size: group.name, block: "", skipRows: "", skipCols: "" });
+  const [values, setValues] = useState({ range: "", prefix: "", size: group.name, block: group.block ?? "", skipRows: "", skipCols: "" });
   const set = (key: keyof typeof values) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setValues((v) => ({ ...v, [key]: e.target.value }));
 
@@ -110,7 +110,7 @@ export function PlotRangePanel({
   return (
     <div className="space-y-4 rounded-xl border border-garden-300 bg-garden-50/40 p-5">
       <div className="flex items-center justify-between">
-        <h4 className="text-base text-ink">Add a range of plots to “{group.name}”</h4>
+        <h4 className="text-base text-ink">Add a range of plots to “{groupFullName(group)}”</h4>
         <button type="button" onClick={onClose} className="text-xs font-medium text-ink-soft hover:text-ink">
           Cancel
         </button>

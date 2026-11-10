@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PlotBookingForm } from "@/components/project/PlotBookingForm";
 import { SHARED_COPY } from "@/lib/projectCopy";
-import { plotsByCell } from "@/lib/plotLayout";
+import { blockLabel, groupFullName, plotsByCell } from "@/lib/plotLayout";
 import type { InventoryStatus, PublicPlot } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +53,7 @@ export function PlotLayout({
   projectId,
   projectName,
   categoryName,
+  blockName,
   rows,
   columns,
   plots,
@@ -61,6 +62,9 @@ export function PlotLayout({
   projectId: string;
   projectName: string;
   categoryName: string;
+  // The category's block (main category) — used when a plot has no
+  // block of its own.
+  blockName?: string | null;
   rows: number;
   columns: number;
   plots: PublicPlot[];
@@ -71,6 +75,8 @@ export function PlotLayout({
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selected, setSelected] = useState<PublicPlot | null>(null);
   const cells = plotsByCell(plots);
+  const fullName = groupFullName({ block: blockName ?? null, name: categoryName });
+  const blockOf = (plot: PublicPlot) => plot.block || (blockName ? blockLabel(blockName) : null);
 
   function open(plot: PublicPlot) {
     setSelected(plot);
@@ -92,21 +98,21 @@ export function PlotLayout({
     <>
       <div
         className={cn(
-          "overflow-x-auto rounded-2xl border border-limestone-300/70 bg-limestone-100/60 p-4 sm:p-6",
+          "overflow-x-auto overscroll-x-contain rounded-2xl border border-limestone-300/70 bg-limestone-100/60 p-3 sm:p-6",
           className
         )}
       >
         <div
-          className="mx-auto grid w-max gap-1.5"
-          style={{ gridTemplateColumns: `repeat(${columns}, 3.25rem)` }}
+          className="mx-auto grid w-max gap-1 [--cell:2.75rem] sm:gap-1.5 sm:[--cell:3.25rem]"
+          style={{ gridTemplateColumns: `repeat(${columns}, var(--cell))` }}
           role="group"
-          aria-label={`${categoryName} — প্লট লেআউট`}
+          aria-label={`${fullName} — প্লট লেআউট`}
         >
           {Array.from({ length: rows * columns }, (_, i) => {
             const row = Math.floor(i / columns) + 1;
             const col = (i % columns) + 1;
             const plot = cells.at(row, col);
-            if (!plot) return <span key={i} aria-hidden className="h-14" />;
+            if (!plot) return <span key={i} aria-hidden className="h-12 sm:h-14" />;
             const tag = cellTag[plot.status];
             return (
               <button
@@ -115,12 +121,12 @@ export function PlotLayout({
                 onClick={() => open(plot)}
                 aria-label={`প্লট ${plot.code} — ${t.statuses[plot.status]}`}
                 className={cn(
-                  "flex h-14 flex-col items-center justify-center rounded-lg border-2 px-0.5 text-sm font-bold leading-tight transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-garden-500 focus-visible:ring-offset-1",
+                  "flex h-12 flex-col items-center justify-center rounded-lg border-2 px-0.5 text-xs font-bold leading-tight transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-garden-500 focus-visible:ring-offset-1 sm:h-14 sm:text-sm",
                   cellStyles[plot.status]
                 )}
               >
                 <span className="max-w-full truncate">{plot.code}</span>
-                {tag && <span className="text-[9px] font-semibold tracking-wide opacity-90">{tag}</span>}
+                {tag && <span className="text-[8px] font-semibold tracking-wide opacity-90 sm:text-[9px]">{tag}</span>}
               </button>
             );
           })}
@@ -142,11 +148,11 @@ export function PlotLayout({
         className="m-auto w-[calc(100%-2rem)] max-w-xl rounded-2xl bg-white p-0 text-ink shadow-card-hover backdrop:bg-garden-900/60"
       >
         {selected && (
-          <div lang="bn" className="max-h-[85vh] overflow-y-auto p-6 sm:p-8">
+          <div lang="bn" className="max-h-[85dvh] overflow-y-auto p-5 sm:p-8">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm text-ink-soft">
-                  {projectName} · {categoryName}
+                  {projectName} · {fullName}
                 </p>
                 <h3 className="mt-1 text-2xl font-bold">
                   {t.plotNo} {selected.code}
@@ -172,9 +178,9 @@ export function PlotLayout({
               </button>
             </div>
 
-            <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+            <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-4 text-sm sm:gap-x-6">
               <Detail label={t.size} value={selected.size || categoryName} />
-              <Detail label={t.block} value={selected.block} />
+              <Detail label={t.block} value={blockOf(selected)} />
               <Detail label={t.facing} value={selected.facing} />
               <Detail label={t.roadWidth} value={selected.roadWidth} />
               <Detail label={t.price} value={selected.price} />
@@ -218,7 +224,7 @@ export function PlotLayout({
                   plot={{
                     id: selected.id,
                     code: selected.code,
-                    block: selected.block,
+                    block: blockOf(selected),
                     size: selected.size || categoryName,
                     category: categoryName,
                   }}
@@ -226,10 +232,46 @@ export function PlotLayout({
                 />
               </div>
             ) : (
-              <p className="mt-7 rounded-xl bg-limestone-100 px-4 py-3 text-sm text-ink-soft">
-                এই প্লটটি ইতিমধ্যে {selected.status === "sold" ? "বিক্রি" : "বুক"} হয়ে গেছে। খালি প্লটগুলো সবুজ বর্ডারে দেখানো
-                হয়েছে।
-              </p>
+              <div className="mt-7">
+                {/* Congratulations to the buyer (name is public; file number never is). */}
+                <div className="relative overflow-hidden rounded-2xl border border-brass-light/40 bg-gradient-to-br from-brass-50 via-white to-garden-50 px-5 py-5 text-center sm:px-6">
+                  <span
+                    aria-hidden
+                    className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brass text-white shadow-card"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 20 9.5 7.5l7 7L4 20Z" />
+                      <path d="M14 4.5c.5 1 .5 2-.5 3M19.5 10c-1-.5-2-.5-3 .5M17 3v1.5M21 7h-1.5M20 14l1 1" />
+                    </svg>
+                  </span>
+                  {/* Bangla first, then English. */}
+                  <p className="mt-3 text-xl font-bold text-garden-700">
+                    অভিনন্দন{selected.clientName ? `, ${selected.clientName}` : ""}!
+                  </p>
+                  <p className="mt-1.5 text-sm text-ink-soft">
+                    {selected.status === "sold"
+                      ? `প্লট ${selected.code} এখন আপনার। আল বুস্তান পরিবারে আপনাকে স্বাগতম।`
+                      : `প্লট ${selected.code} আপনার নামে বুক করা হয়েছে। আল বুস্তান পরিবারে আপনাকে স্বাগতম।`}
+                  </p>
+                  <div aria-hidden className="mx-auto my-3.5 h-px w-16 bg-brass-light/50" />
+                  <div lang="en">
+                    <p className="font-display text-lg font-semibold text-garden-700">
+                      Congratulations{selected.clientName ? `, ${selected.clientName}` : ""}!
+                    </p>
+                    <p className="mt-1 text-sm text-ink-soft">
+                      {selected.status === "sold"
+                        ? `Plot ${selected.code} is now yours. Welcome to the Al Bustan family.`
+                        : `Plot ${selected.code} has been booked in your name. Welcome to the Al Bustan family.`}
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-4 text-center text-sm text-ink-soft">
+                  আপনিও প্লট খুঁজছেন? সবুজ বর্ডারের খালি প্লটগুলো থেকে পছন্দেরটি বেছে নিন।
+                  <span lang="en" className="mt-0.5 block text-xs">
+                    Looking for a plot too? Pick any free plot with a green border.
+                  </span>
+                </p>
+              </div>
             )}
           </div>
         )}

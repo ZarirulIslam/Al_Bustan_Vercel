@@ -62,7 +62,7 @@ export function ProjectsHeroSlider({ projects, companyName }: { projects: Projec
             <p className="mt-8 text-xs font-bold uppercase tracking-[0.24em] text-garden-300">
               {project.category === "flat" ? "Apartment Project" : "Land Project"}
             </p>
-            <h1 className="mt-4 max-w-3xl font-body text-5xl font-bold leading-[1.02] tracking-tight text-white md:text-7xl">
+            <h1 className="mt-4 max-w-3xl font-body text-4xl font-bold leading-[1.02] tracking-tight text-white sm:text-5xl md:text-7xl">
               {project.name}
             </h1>
             <p className="mt-6 line-clamp-2 max-w-xl text-base leading-relaxed text-white/80 md:text-lg">{project.shortDescription}</p>

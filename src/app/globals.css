@@ -5,6 +5,8 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
@@ -16,6 +18,15 @@
   h3,
   h4 {
     @apply font-display text-ink;
+    /* A long word in a big heading wraps instead of widening the page on
+       small phones. */
+    overflow-wrap: break-word;
+  }
+
+  img,
+  video,
+  iframe {
+    max-width: 100%;
   }
 
   /* Visible keyboard focus everywhere — never suppressed */
@@ -129,8 +140,19 @@
     max-width: 100%;
     height: auto;
   }
+  .rich-text {
+    overflow-wrap: break-word;
+  }
   .rich-text table {
     @apply w-full border-collapse text-left;
+  }
+  /* On phones, wide tables scroll sideways inside the text instead of
+     widening the page. */
+  @media (max-width: 767px) {
+    .rich-text table {
+      display: block;
+      overflow-x: auto;
+    }
   }
   .rich-text th,
   .rich-text td {

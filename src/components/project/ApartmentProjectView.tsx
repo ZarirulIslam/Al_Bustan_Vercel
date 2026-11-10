@@ -127,7 +127,7 @@ export function ApartmentProjectView({
             Project Details
           </span>
 
-          <h1 className="mt-5 max-w-4xl font-body text-5xl font-extrabold uppercase leading-[0.95] tracking-tight text-white md:text-7xl">
+          <h1 className="mt-5 max-w-4xl font-body text-4xl font-extrabold uppercase leading-[0.95] tracking-tight text-white sm:text-5xl md:text-7xl">
             {project.name}
           </h1>
 

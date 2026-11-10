@@ -61,8 +61,14 @@ export async function generateMetadata(): Promise<Metadata> {
     // Set here rather than with app/icon.png-style files, which would
     // override this and leave the /admin/settings favicon with no effect.
     // The defaults live in public/ for when no favicon has been uploaded.
+    // With an upload, every icon request goes through /favicon.ico (which
+    // serves it); ?v= changes with each upload so browsers drop the old
+    // cached icon.
     icons: settings.faviconUrl
-      ? { icon: settings.faviconUrl, apple: settings.faviconUrl }
+      ? {
+          icon: `/favicon.ico?v=${encodeURIComponent(settings.faviconUrl.split("/").pop()?.split(".")[0] ?? "1")}`,
+          apple: settings.faviconUrl,
+        }
       : {
           icon: [{ url: "/favicon.ico", sizes: "any" }, { url: "/icon.png", type: "image/png", sizes: "32x32" }],
           apple: "/apple-icon.png",

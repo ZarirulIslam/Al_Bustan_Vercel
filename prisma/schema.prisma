@@ -270,8 +270,11 @@ model PlotGroup {
   id          String  @id @default(cuid())
   projectId   String
   project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // Main category on the site: categories are grouped by block, and
+  // the name (size) is the sub-category within it — e.g. Block A → ৩ কাঠা.
+  block       String? // e.g. "Block A"
   name        String // e.g. "৩ কাঠা"
-  slug        String // e.g. "3-katha" — unique within the project
+  slug        String // e.g. "a-3-katha" — unique within the project
   description String?
   rows        Int     @default(6)
   columns     Int     @default(10)

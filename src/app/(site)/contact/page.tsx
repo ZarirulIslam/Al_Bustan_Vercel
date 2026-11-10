@@ -60,7 +60,7 @@ export default async function ContactPage() {
       <Section className="pt-16 md:pt-20">
         <Container>
           <Eyebrow>Contact Us</Eyebrow>
-          <h1 className="mt-4 max-w-2xl text-4xl leading-[1.1] md:text-5xl">
+          <h1 className="mt-4 max-w-2xl text-3xl leading-[1.1] sm:text-4xl md:text-5xl">
             Let&apos;s talk about your <em className="italic text-brass">future home</em>
           </h1>
 

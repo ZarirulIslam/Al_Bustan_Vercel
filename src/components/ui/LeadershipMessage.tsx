@@ -30,7 +30,7 @@ export function LeadershipMessage({
       <InlineRichText
         as="h2"
         html={heading}
-        className="leader-heading text-4xl leading-[1.1] md:text-5xl lg:text-[3rem]"
+        className="leader-heading text-3xl leading-[1.1] sm:text-4xl md:text-5xl lg:text-[3rem]"
       />
       <RichText html={message} className={cn("text-base leading-relaxed text-ink-soft", richHtmlToPlainText(heading) && "mt-7")} />
 

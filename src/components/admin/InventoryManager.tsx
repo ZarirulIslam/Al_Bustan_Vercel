@@ -10,7 +10,7 @@ import {
   deleteInventoryRange,
   updateInventoryItemStatus,
 } from "@/app/admin/(dashboard)/projects/actions";
-import { parseRange } from "@/lib/plotLayout";
+import { groupFullName, parseRange } from "@/lib/plotLayout";
 import type { InventoryItem, InventoryStatus, PlotGroup, ProjectCategory } from "@/lib/types";
 import { useAdminAction } from "@/components/admin/AdminToaster";
 
@@ -129,7 +129,7 @@ export function InventoryManager({
       rangeValues.groupId === "unplaced"
         ? " not on any layout"
         : rangeValues.groupId
-          ? ` from "${groups.find((g) => g.id === rangeValues.groupId)?.name}"`
+          ? ` from "${(() => { const g = groups.find((x) => x.id === rangeValues.groupId); return g ? groupFullName(g) : ""; })()}"`
           : " from every category";
     const label = `${rangeValues.prefix.trim()}${rangeValues.range.trim()}${scope}`;
     if (!confirm(`Delete ${rangeDeletes} ${unitLabelLower}s (${label})? This can't be undone.`)) return;
@@ -184,7 +184,7 @@ export function InventoryManager({
                 >
                   {groups.map((g) => (
                     <option key={g.id} value={g.id}>
-                      {g.name}
+                      {groupFullName(g)}
                     </option>
                   ))}
                   <option value="unplaced">Not on any layout</option>
@@ -346,7 +346,7 @@ export function InventoryManager({
                       <td className="px-4 py-3 font-medium text-ink">{item.code}</td>
                       {showCategory && (
                         <td className="px-4 py-3 text-ink-soft">
-                          {groups.find((g) => g.id === item.groupId)?.name ?? "—"}
+                          {(() => { const g = groups.find((x) => x.id === item.groupId); return g ? groupFullName(g) : "—"; })()}
                         </td>
                       )}
                       <td className="px-4 py-3 text-ink-soft">{(isFlat ? item.floor : item.block) || "—"}</td>

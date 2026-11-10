@@ -10,7 +10,7 @@ import { LiteYouTube } from "@/components/project/LiteYouTube";
 import { PlotTypeTabs } from "@/components/project/PlotTypeTabs";
 import { PlotBookingForm } from "@/components/project/PlotBookingForm";
 import { PlotLayoutTabs } from "@/components/project/PlotLayoutTabs";
-import { plotTabHash } from "@/lib/plotLayout";
+import { blockLabel, groupByBlock, plotTabHash } from "@/lib/plotLayout";
 import { Reveal } from "@/components/project/Reveal";
 import { ArrowIcon, DownloadIcon, IconChip, IconTileGrid, directionsUrl } from "@/components/project/shared";
 import { isEmptyRichHtml } from "@/lib/richText/shared";
@@ -132,7 +132,7 @@ export function LandProjectView({
         <div aria-hidden className="absolute -right-32 top-16 h-80 w-80 rounded-full bg-brass-50 blur-3xl" />
         <div className="container-content relative mx-auto max-w-3xl text-center">
           {project.tagline && <Eyebrow center>{project.tagline}</Eyebrow>}
-          <h1 className="mt-5 text-4xl font-bold leading-tight md:text-6xl">{name}</h1>
+          <h1 className="mt-5 text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">{name}</h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-ink-soft md:text-xl">{project.shortDescription}</p>
         </div>
       </section>
@@ -155,9 +155,9 @@ export function LandProjectView({
                 )}
               >
                 {sections.stat.slice(0, 3).map((stat) => (
-                  <div key={stat.id} className="flex flex-col-reverse bg-white px-5 py-5">
+                  <div key={stat.id} className="flex min-w-0 flex-col-reverse bg-white px-3 py-4 sm:px-5 sm:py-5">
                     <dt className="mt-1 text-xs text-ink-soft sm:text-sm">{stat.description}</dt>
-                    <dd className="text-2xl font-bold text-garden-600">{stat.title}</dd>
+                    <dd className="break-words text-xl font-bold text-garden-600 sm:text-2xl">{stat.title}</dd>
                   </div>
                 ))}
               </dl>
@@ -184,18 +184,27 @@ export function LandProjectView({
             {plotSections.length > 0 && (
               <div className="mt-8">
                 <p className="text-sm font-semibold text-ink">প্লট দেখুন ও বুক করুন</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {plotSections.map(({ group, plots }) => (
-                    <a
-                      key={group.id}
-                      href={`#${plotTabHash(group)}`}
-                      className="inline-flex items-center gap-2 rounded-full border border-garden-500 bg-white px-4 py-2 text-sm font-semibold text-garden-700 transition-colors hover:bg-garden-500 hover:text-white"
-                    >
-                      {group.name}
-                      <span className="text-xs font-medium opacity-80">
-                        {bn(plots.filter((p) => p.status === "available").length)} খালি
-                      </span>
-                    </a>
+                <div className="mt-3 space-y-2.5">
+                  {groupByBlock(plotSections, (s) => s.group).map((b) => (
+                    <div key={b.key} className="flex flex-wrap items-center gap-2">
+                      {plotSections.some((s) => s.group.block) && (
+                        <span className="min-w-[4.5rem] text-sm font-bold text-garden-700">
+                          {b.block ? blockLabel(b.block) : "অন্যান্য"}
+                        </span>
+                      )}
+                      {b.items.map(({ group, plots }) => (
+                        <a
+                          key={group.id}
+                          href={`#${plotTabHash(group)}`}
+                          className="inline-flex items-center gap-2 rounded-full border border-garden-500 bg-white px-3.5 py-1.5 text-sm font-semibold text-garden-700 transition-colors hover:bg-garden-500 hover:text-white sm:px-4 sm:py-2"
+                        >
+                          {group.name}
+                          <span className="text-xs font-medium opacity-80">
+                            {bn(plots.filter((p) => p.status === "available").length)} খালি
+                          </span>
+                        </a>
+                      ))}
+                    </div>
                   ))}
                 </div>
               </div>

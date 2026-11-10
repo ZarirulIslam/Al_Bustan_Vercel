@@ -24,7 +24,15 @@ import {
   type InventoryItemFormState,
 } from "@/lib/admin/inventorySchema";
 import { MAX_GRID, plotGroupFormSchema, type PlotGroupFormState } from "@/lib/admin/plotGroupSchema";
-import { parseNumberList, parseRange, planRangeFill, rangeCodeSets } from "@/lib/plotLayout";
+import {
+  groupByBlock,
+  groupFullName,
+  parseNumberList,
+  parseRange,
+  planRangeFill,
+  rangeCodeSets,
+  sameBlock,
+} from "@/lib/plotLayout";
 import {
   paymentPlanFormSchema,
   type PaymentPlanFormState,
@@ -851,13 +859,19 @@ export async function createPlotGroup(
   const last = await prisma.plotGroup.findFirst({ where: { projectId }, orderBy: { order: "desc" } });
   try {
     const group = await prisma.plotGroup.create({
-      data: { projectId, ...data, description: data.description || null, order: (last?.order ?? -1) + 1 },
+      data: {
+        projectId,
+        ...data,
+        block: data.block || null,
+        description: data.description || null,
+        order: (last?.order ?? -1) + 1,
+      },
     });
     await logActivity({
       action: "created",
       resource: "PlotGroup",
       resourceId: group.id,
-      description: `Added plot category "${group.name}"`,
+      description: `Added plot category "${groupFullName(group)}"`,
     });
   } catch (error) {
     if (isUniqueViolation(error)) return SLUG_TAKEN;
@@ -893,7 +907,7 @@ export async function updatePlotGroup(
   try {
     await prisma.plotGroup.update({
       where: { id },
-      data: { ...data, description: data.description || null },
+      data: { ...data, block: data.block || null, description: data.description || null },
     });
   } catch (error) {
     if (isUniqueViolation(error)) return SLUG_TAKEN;
@@ -904,7 +918,7 @@ export async function updatePlotGroup(
     action: "updated",
     resource: "PlotGroup",
     resourceId: id,
-    description: `Updated plot category "${data.name}"`,
+    description: `Updated plot category "${groupFullName({ block: data.block || null, name: data.name })}"`,
   });
   await revalidateInventoryPages(existing.projectId);
   return { success: true };
@@ -944,9 +958,16 @@ export async function movePlotGroup(id: string, direction: "up" | "down") {
     where: { projectId: current.projectId },
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
   });
+  // Sizes move within their own block: swap with the nearest category
+  // of the same block (the block's place follows its first category).
   const index = groups.findIndex((g) => g.id === id);
-  const swapIndex = direction === "up" ? index - 1 : index + 1;
-  if (index === -1 || swapIndex < 0 || swapIndex >= groups.length) return;
+  if (index === -1) return;
+  const step = direction === "up" ? -1 : 1;
+  let swapIndex = index + step;
+  while (swapIndex >= 0 && swapIndex < groups.length && !sameBlock(groups[swapIndex].block, current.block)) {
+    swapIndex += step;
+  }
+  if (swapIndex < 0 || swapIndex >= groups.length) return;
 
   // Re-number everything, so groups that share an order value still swap.
   const reordered = [...groups];
@@ -956,6 +977,30 @@ export async function movePlotGroup(id: string, direction: "up" | "down") {
   );
 
   await revalidateInventoryPages(current.projectId);
+}
+
+// Moves a whole block (all its categories) one place earlier or later
+// on the site. Categories without a block always stay last.
+export async function movePlotBlock(projectId: string, block: string, direction: "up" | "down") {
+  await requireAdmin();
+
+  const groups = await prisma.plotGroup.findMany({
+    where: { projectId },
+    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+  });
+  const blocks = groupByBlock(groups, (g) => g);
+  const named = blocks.filter((b) => b.block);
+  const index = named.findIndex((b) => sameBlock(b.block, block));
+  const swapIndex = direction === "up" ? index - 1 : index + 1;
+  if (index === -1 || swapIndex < 0 || swapIndex >= named.length) return;
+  [named[index], named[swapIndex]] = [named[swapIndex], named[index]];
+
+  const reordered = [...named, ...blocks.filter((b) => !b.block)].flatMap((b) => b.items);
+  await prisma.$transaction(
+    reordered.map((g, i) => prisma.plotGroup.update({ where: { id: g.id }, data: { order: i } }))
+  );
+
+  await revalidateInventoryPages(projectId);
 }
 
 // --- Payment Plans ---

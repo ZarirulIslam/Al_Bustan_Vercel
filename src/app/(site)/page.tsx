@@ -106,7 +106,7 @@ export default async function HomePage() {
           {homepageSettings.heroTextEnabled && (
             <>
               <p className="text-sm text-limestone-200/80">{homepageSettings.heroEyebrow}</p>
-              <h1 className="mt-4 max-w-2xl text-4xl text-white md:text-6xl">
+              <h1 className="mt-4 max-w-2xl text-3xl text-white sm:text-4xl md:text-6xl">
                 {homepageSettings.heroHeadline}
               </h1>
               <p className="mt-5 max-w-lg text-base text-limestone-100/90 md:text-lg">
@@ -446,7 +446,7 @@ export default async function HomePage() {
               </Button>
             </div>
           </div>
-          <div className="space-y-3 border-t border-limestone-300 pt-6 text-sm text-ink-soft md:border-l md:border-t-0 md:pl-10 md:pt-0">
+          <div className="min-w-0 space-y-3 break-words border-t border-limestone-300 pt-6 text-sm text-ink-soft [overflow-wrap:anywhere] md:border-l md:border-t-0 md:pl-10 md:pt-0">
             <p>{settings.address}</p>
             <p>{settings.phone}</p>
             <p>{settings.email}</p>

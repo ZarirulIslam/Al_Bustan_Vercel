@@ -14,7 +14,7 @@ export function PlaceholderPage({
     <Section className="py-28 md:py-36">
       <Container>
         <p className="text-sm text-brass">{eyebrow}</p>
-        <h1 className="mt-3 max-w-2xl text-4xl md:text-5xl">{title}</h1>
+        <h1 className="mt-3 max-w-2xl text-3xl sm:text-4xl md:text-5xl">{title}</h1>
         <p className="mt-5 max-w-prose text-base text-ink-soft">
           {description}
         </p>

@@ -7,6 +7,7 @@ import { primaryNav } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+import { ProjectsMenu } from "@/components/layout/ProjectsMenu";
 import type { SiteSettings } from "@/lib/types";
 
 export interface NavProjectLink {
@@ -103,7 +104,7 @@ export function Navbar({
         className="h-[3px] w-full bg-gradient-to-r from-garden-700 via-garden-500 to-brass"
       />
       <Container>
-        <div className="flex h-24 items-center justify-between">
+        <div className="flex h-20 items-center justify-between gap-4 lg:h-24">
           <Link
             href="/"
             className={cn(
@@ -118,7 +119,7 @@ export function Navbar({
               <img
                 src={settings.logoUrl}
                 alt={settings.companyName}
-                className="h-16 w-auto md:h-20"
+                className="h-14 w-auto max-w-[60vw] object-contain lg:h-20"
               />
             ) : (
               settings.companyName
@@ -128,62 +129,16 @@ export function Navbar({
           {/* Desktop nav — a pill-shaped bar with the active item as a
               solid dark-green segment inside it, rather than plain
               inline links. */}
-          <nav className="hidden items-center gap-1 rounded-full border border-limestone-300 bg-white/70 p-1.5 backdrop-blur md:flex">
+          <nav className="hidden items-center gap-1 rounded-full border border-limestone-300 bg-white/70 p-1.5 backdrop-blur lg:flex">
             {nav.map((item) =>
               isProjects(item.href) ? (
-                <div key={item.label} className="group relative">
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-200 ease-estate",
-                      isActive(item.href) || projectHrefs.includes(pathname)
-                        ? "bg-garden-700 text-white"
-                        : "text-ink-soft hover:bg-limestone-200/70 hover:text-garden-700"
-                    )}
-                  >
-                    {item.label}
-                    <Chevron className="mt-px transition-transform duration-200 ease-estate group-hover:rotate-180 group-focus-within:rotate-180" />
-                  </Link>
-
-                  {/* Level 1: project types */}
-                  <div className="invisible absolute left-0 top-full pt-3 opacity-0 transition-all duration-150 ease-estate group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
-                    <ul className="min-w-[240px] rounded-2xl border border-limestone-300 bg-white p-2 shadow-card-hover">
-                      {projectTypes.map((type) => (
-                        <li key={type.key} className="group/type relative">
-                          <button
-                            type="button"
-                            aria-haspopup="true"
-                            className="flex w-full items-center justify-between gap-6 rounded-xl px-4 py-3 text-left text-sm font-semibold text-ink-soft transition-colors group-hover/type:bg-garden-50 group-hover/type:text-garden-700 group-focus-within/type:bg-garden-50 group-focus-within/type:text-garden-700"
-                          >
-                            {type.label}
-                            <Chevron className="-rotate-90" />
-                          </button>
-
-                          {/* Level 2: that type's projects */}
-                          <div className="invisible absolute left-full top-0 pl-2 opacity-0 transition-all duration-150 ease-estate group-focus-within/type:visible group-focus-within/type:opacity-100 group-hover/type:visible group-hover/type:opacity-100">
-                            <ul className="min-w-[220px] rounded-2xl border border-limestone-300 bg-white p-2 shadow-card-hover">
-                              {projectMenu[type.key].map((project) => (
-                                <li key={project.href}>
-                                  <Link
-                                    href={project.href}
-                                    className={cn(
-                                      "block rounded-xl px-4 py-2.5 text-sm font-medium transition-colors",
-                                      pathname === project.href
-                                        ? "bg-garden-50 text-garden-700"
-                                        : "text-ink-soft hover:bg-garden-50 hover:text-garden-700"
-                                    )}
-                                  >
-                                    {project.name}
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
+                <ProjectsMenu
+                  key={item.label}
+                  label={item.label}
+                  href={item.href}
+                  projectMenu={projectMenu}
+                  active={isActive(item.href) || projectHrefs.includes(pathname)}
+                />
               ) : (
                 <Link
                   key={item.href}
@@ -201,7 +156,7 @@ export function Navbar({
             )}
           </nav>
 
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <Button href="/contact" variant="accent" size="md" className="rounded-full">
               Get in Touch
             </Button>
@@ -213,7 +168,7 @@ export function Navbar({
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((v) => !v)}
-            className="flex h-10 w-10 items-center justify-center rounded-md text-ink md:hidden"
+            className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-ink lg:hidden"
           >
             <svg width="22" height="16" viewBox="0 0 22 16" fill="none" aria-hidden="true">
               {mobileOpen ? (
@@ -238,8 +193,8 @@ export function Navbar({
       {/* Mobile menu */}
       <div
         className={cn(
-          "overflow-y-auto border-t border-limestone-300 bg-limestone-100 transition-[max-height] duration-300 ease-estate md:hidden",
-          mobileOpen ? "max-h-[80vh]" : "max-h-0 border-t-0"
+          "overflow-y-auto overscroll-contain border-t border-limestone-300 bg-limestone-100 transition-[max-height] duration-300 ease-estate lg:hidden",
+          mobileOpen ? "max-h-[calc(100dvh-5rem)]" : "max-h-0 border-t-0"
         )}
       >
         <Container className="flex flex-col gap-1 py-4">
@@ -292,6 +247,9 @@ export function Navbar({
               </Link>
             )
           )}
+          <Button href="/contact" variant="accent" size="md" className="mt-3 rounded-full">
+            Get in Touch
+          </Button>
         </Container>
       </div>
     </header>

@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { createPlotGroup, updatePlotGroup } from "@/app/admin/(dashboard)/projects/actions";
 import { useActionFeedback } from "@/components/admin/AdminToaster";
 import { MAX_GRID } from "@/lib/admin/plotGroupSchema";
+import { PLOT_SIZE_PRESETS, groupFullName, suggestGroupSlug } from "@/lib/plotLayout";
 import type { PlotGroup } from "@/lib/types";
 
 const inputClass =
@@ -45,21 +46,34 @@ function Field({
   );
 }
 
-// Add / edit a plot category (its name, page URL and layout grid size).
+// Add / edit a plot category: its block (main category on the site),
+// size / type (sub-category), page URL and layout grid size.
 export function PlotGroupForm({
   projectId,
   group,
+  blocks,
+  defaultBlock,
   onCancel,
   onSaved,
 }: {
   projectId: string;
   group?: PlotGroup;
+  // Blocks already used in this project — offered as suggestions.
+  blocks: string[];
+  // Pre-filled block for a new category (e.g. "+ Size" inside Block A).
+  defaultBlock?: string;
   onCancel: () => void;
   onSaved: () => void;
 }) {
+  const [block, setBlock] = useState(group?.block ?? defaultBlock ?? "");
+  const [name, setName] = useState(group?.name ?? "");
+  const [slug, setSlug] = useState(group?.slug ?? "");
+  // A new category's address follows block + size until typed by hand.
+  const [slugTouched, setSlugTouched] = useState(Boolean(group));
+  const shownSlug = slugTouched ? slug : suggestGroupSlug(block, name);
   const action = group ? updatePlotGroup.bind(null, group.id) : createPlotGroup.bind(null, projectId);
   const [state, formAction] = useActionState(action, {});
-  useActionFeedback(state, group ? `"${group.name}" saved.` : "Category added.");
+  useActionFeedback(state, group ? `"${groupFullName(group)}" saved.` : "Category added.");
   const e = state.fieldErrors;
 
   useEffect(() => {
@@ -81,12 +95,65 @@ export function PlotGroupForm({
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Name" htmlFor="pg-name" error={e?.name}>
-          <input id="pg-name" name="name" className={inputClass} defaultValue={group?.name} placeholder="যেমন: ৩ কাঠা" required />
+        <Field
+          label="Block (main category)"
+          htmlFor="pg-block"
+          hint="e.g. Block A. Visitors pick the block first, then the size."
+          error={e?.block}
+        >
+          <input
+            id="pg-block"
+            name="block"
+            list="pg-block-list"
+            className={inputClass}
+            value={block}
+            onChange={(ev) => setBlock(ev.target.value)}
+            maxLength={40}
+            placeholder="Block A"
+          />
+          <datalist id="pg-block-list">
+            {blocks.map((b) => (
+              <option key={b} value={b} />
+            ))}
+          </datalist>
         </Field>
-        <Field label="Page address" htmlFor="pg-slug" hint="English, e.g. 3-katha or commercial." error={e?.slug}>
-          <input id="pg-slug" name="slug" className={inputClass} defaultValue={group?.slug} placeholder="3-katha" required />
+        <Field label="Size / type (sub-category)" htmlFor="pg-name" hint="Pick from the list or type your own." error={e?.name}>
+          <input
+            id="pg-name"
+            name="name"
+            list="pg-name-list"
+            className={inputClass}
+            value={name}
+            onChange={(ev) => setName(ev.target.value)}
+            placeholder="যেমন: ৩ কাঠা"
+            required
+          />
+          <datalist id="pg-name-list">
+            {PLOT_SIZE_PRESETS.map((p) => (
+              <option key={p.name} value={p.name} />
+            ))}
+          </datalist>
         </Field>
+        <Field
+          label="Page address"
+          htmlFor="pg-slug"
+          hint="English, unique in this project — e.g. a-3-katha. Filled in from block + size."
+          error={e?.slug}
+        >
+          <input
+            id="pg-slug"
+            name="slug"
+            className={inputClass}
+            value={shownSlug}
+            onChange={(ev) => {
+              setSlug(ev.target.value);
+              setSlugTouched(true);
+            }}
+            placeholder="a-3-katha"
+            required
+          />
+        </Field>
+        <div className="hidden sm:block" />
         <Field
           label="Rows"
           htmlFor="pg-rows"

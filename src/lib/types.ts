@@ -108,6 +108,8 @@ export interface InventoryItem {
 export interface PlotGroup {
   id: string;
   projectId: string;
+  // Main category (e.g. "Block A"); null for categories not in a block.
+  block: string | null;
   name: string;
   slug: string;
   description: string | null;

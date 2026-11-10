@@ -6,6 +6,7 @@ export function mapPlotGroup(row: PrismaPlotGroup): PlotGroup {
   return {
     id: row.id,
     projectId: row.projectId,
+    block: row.block,
     name: row.name,
     slug: row.slug,
     description: row.description,
@@ -94,6 +95,7 @@ export function buildPlotSections(groups: PlotGroup[], items: InventoryItem[]) {
       group: {
         id,
         projectId: list[0].projectId,
+        block: null,
         name,
         slug: "",
         description: null,

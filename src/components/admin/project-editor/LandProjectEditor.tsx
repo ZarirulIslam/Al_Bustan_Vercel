@@ -287,7 +287,7 @@ export function LandProjectEditor({
       label: "প্লট তালিকা",
       title: "প্লট তালিকা",
       description:
-        "Plot categories (৩ কাঠা, বাণিজ্যিক, …), each with its own layout page where visitors see which plots are free, sold or booked and can send a booking request. For booked or sold plots, add the client's name and payment (এককালীন / কিস্তি, with installments remaining).",
+        "Blocks are the main category (Block A, Block B, …) and each block's sizes the sub-category (৩ / ৫ / ১০ / ২০ কাঠা, বাণিজ্যিক, বিজনেস, কন্ডোমিনিয়াম). Every block + size has its own layout page where visitors see which plots are free, sold or booked and can send a booking request. For booked or sold plots, add the client's name and payment (এককালীন / কিস্তি, with installments remaining).",
       anchor: "plot-list",
       count: inventory?.length,
       extra:

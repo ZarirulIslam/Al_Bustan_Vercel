@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { createInventoryItem, updateInventoryItem } from "@/app/admin/(dashboard)/projects/actions";
+import { groupFullName } from "@/lib/plotLayout";
 import type { InventoryItem, PaymentMode, PlotGroup, ProjectCategory } from "@/lib/types";
 import { useActionFeedback } from "@/components/admin/AdminToaster";
 
@@ -200,7 +201,7 @@ export function InventoryItemForm({
                 <option value="">— Not on a layout</option>
                 {groups.map((g) => (
                   <option key={g.id} value={g.id}>
-                    {g.name}
+                    {groupFullName(g)}
                   </option>
                 ))}
               </select>

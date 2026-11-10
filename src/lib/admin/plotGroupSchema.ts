@@ -12,6 +12,7 @@ const gridSize = z.coerce
   .max(MAX_GRID, `At most ${MAX_GRID}.`);
 
 export const plotGroupFormSchema = z.object({
+  block: z.string().trim().max(40).optional(),
   name: z.string().trim().min(1, "Required.").max(60),
   slug: z
     .string()
@@ -19,7 +20,7 @@ export const plotGroupFormSchema = z.object({
     .toLowerCase()
     .min(1, "Required.")
     .max(60)
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use English letters, numbers and dashes, e.g. 3-katha."),
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use English letters, numbers and dashes, e.g. a-3-katha."),
   description: z.string().trim().max(300).optional(),
   rows: gridSize,
   columns: gridSize,

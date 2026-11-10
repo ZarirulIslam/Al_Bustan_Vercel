@@ -17,7 +17,7 @@ export default async function CompletedProjectsPage() {
     <Section className="pt-16 md:pt-20">
       <Container>
         <p className="text-sm text-brass">Projects — Completed</p>
-        <h1 className="mt-3 max-w-xl text-4xl md:text-5xl">
+        <h1 className="mt-3 max-w-xl text-3xl sm:text-4xl md:text-5xl">
           Delivered communities
         </h1>
         <div className="mt-10">

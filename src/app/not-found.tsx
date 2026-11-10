@@ -7,7 +7,7 @@ export default function NotFound() {
     <Section className="py-28 md:py-40">
       <Container>
         <p className="text-sm text-brass">404</p>
-        <h1 className="mt-3 max-w-xl text-4xl md:text-5xl">
+        <h1 className="mt-3 max-w-xl text-3xl sm:text-4xl md:text-5xl">
           This page doesn&apos;t exist
         </h1>
         <p className="mt-5 max-w-prose text-base text-ink-soft">

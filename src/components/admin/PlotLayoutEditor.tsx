@@ -11,10 +11,18 @@ import { useAdminAction, useAdminToast, GENERIC_ERROR } from "@/components/admin
 import {
   deleteInventoryItem,
   deletePlotGroup,
+  movePlotBlock,
   movePlotGroup,
   quickAddPlot,
 } from "@/app/admin/(dashboard)/projects/actions";
-import { nextPlotCode, plotsByCell, suggestNextCode } from "@/lib/plotLayout";
+import {
+  blockLabel,
+  groupByBlock,
+  groupFullName,
+  nextPlotCode,
+  plotsByCell,
+  suggestNextCode,
+} from "@/lib/plotLayout";
 import type { InventoryItem, InventoryStatus, PlotGroup } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +61,8 @@ export function PlotLayoutEditor({
   const [quick, setQuick] = useState(false);
   const [showRange, setShowRange] = useState(false);
   const [nextCode, setNextCode] = useState("1");
+  const [newBlock, setNewBlock] = useState("");
+  const blockList = groupByBlock(groups, (g) => g);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const group = groups.find((g) => g.id === selectedId) ?? groups[0];
@@ -104,37 +114,96 @@ export function PlotLayoutEditor({
 
   return (
     <div className="space-y-5">
-      {/* Category tabs */}
-      <div className="flex flex-wrap items-center gap-2">
-        {groups.map((g) => (
-          <button
-            key={g.id}
-            type="button"
-            onClick={() => {
-              setSelectedId(g.id);
-              setGroupForm(null);
-            }}
-            className={cn(
-              "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
-              g.id === group?.id
-                ? "border-garden-500 bg-garden-500 text-white"
-                : "border-limestone-300 bg-white text-ink hover:border-garden-500"
-            )}
-          >
-            {g.name}
-            <span className="ml-1.5 text-xs opacity-75">{items.filter((i) => i.groupId === g.id).length}</span>
-          </button>
-        ))}
-        <Button type="button" variant="ghost" size="sm" onClick={() => setGroupForm("new")}>
-          + Category
+      {/* Blocks (main category), each with its size tabs (sub-category). */}
+      <div className="space-y-3">
+        {blockList.map((b, bi) => {
+          const named = blockList.filter((x) => x.block).length;
+          return (
+            <div
+              key={b.key}
+              className="flex flex-col gap-2 rounded-lg border border-limestone-300 bg-limestone-100/60 p-3 sm:flex-row sm:items-center"
+            >
+              <div className="flex shrink-0 items-center gap-1 sm:w-40">
+                <span className="text-sm font-semibold text-ink">{b.block ? blockLabel(b.block) : "No block"}</span>
+                {b.block && named > 1 && (
+                  <span className="ml-auto flex gap-0.5 sm:ml-1">
+                    <button
+                      type="button"
+                      aria-label={`Move ${b.block} earlier`}
+                      disabled={busy || bi === 0}
+                      onClick={() => run(() => movePlotBlock(projectId, b.block!, "up"))}
+                      className="rounded px-1.5 text-ink-soft hover:bg-white hover:text-ink disabled:opacity-30"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Move ${b.block} later`}
+                      disabled={busy || bi >= named - 1}
+                      onClick={() => run(() => movePlotBlock(projectId, b.block!, "down"))}
+                      className="rounded px-1.5 text-ink-soft hover:bg-white hover:text-ink disabled:opacity-30"
+                    >
+                      ↓
+                    </button>
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {b.items.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedId(g.id);
+                      setGroupForm(null);
+                    }}
+                    className={cn(
+                      "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
+                      g.id === group?.id
+                        ? "border-garden-500 bg-garden-500 text-white"
+                        : "border-limestone-300 bg-white text-ink hover:border-garden-500"
+                    )}
+                  >
+                    {g.name}
+                    <span className="ml-1.5 text-xs opacity-75">{items.filter((i) => i.groupId === g.id).length}</span>
+                  </button>
+                ))}
+                {b.block && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewBlock(b.block!);
+                      setGroupForm("new");
+                    }}
+                    className="rounded-full border border-dashed border-garden-300 px-3 py-1.5 text-xs font-medium text-garden-700 hover:border-garden-500"
+                  >
+                    + Size
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setNewBlock("");
+            setGroupForm("new");
+          }}
+        >
+          + Block / category
         </Button>
       </div>
 
       {groupForm && (
         <PlotGroupForm
-          key={groupForm === "edit" ? group?.id : "new"}
+          key={groupForm === "edit" ? group?.id : `new-${newBlock}`}
           projectId={projectId}
           group={groupForm === "edit" ? group : undefined}
+          blocks={blockList.flatMap((b) => (b.block ? [b.block] : []))}
+          defaultBlock={newBlock}
           onCancel={() => setGroupForm(null)}
           onSaved={() => setGroupForm(null)}
         />
@@ -143,8 +212,8 @@ export function PlotLayoutEditor({
       {!group ? (
         !groupForm && (
           <p className="rounded-lg border border-dashed border-limestone-300 bg-limestone-100 px-4 py-6 text-center text-sm text-ink-soft">
-            Add a category (e.g. ৩ কাঠা, ৫ কাঠা, বাণিজ্যিক) to start drawing its plot layout. Each category gets its own
-            page on the website.
+            Add a block and its first size (e.g. Block A → ৩ কাঠা) to start drawing its plot layout. Each block + size
+            gets its own layout and page on the website.
           </p>
         )
       ) : (
@@ -152,7 +221,7 @@ export function PlotLayoutEditor({
           {/* Category header */}
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h3 className="text-lg text-ink">{group.name}</h3>
+              <h3 className="text-lg text-ink">{groupFullName(group)}</h3>
               <p className="mt-0.5 text-xs text-ink-soft">
                 {group.rows} rows × {group.columns} columns · {groupItems.length} plots — {count("available")} available,{" "}
                 {count("reserved")} reserved, {count("sold")} sold
@@ -185,7 +254,7 @@ export function PlotLayoutEditor({
                 onClick={() => {
                   if (
                     confirm(
-                      `Delete the "${group.name}" category? Its ${groupItems.length} plots are kept (with their buyer info) but taken off the layout, so they won't show on the site until you place them in a category again (+ Add range with their numbers).`
+                      `Delete the "${groupFullName(group)}" category? Its ${groupItems.length} plots are kept (with their buyer info) but taken off the layout, so they won't show on the site until you place them in a category again (+ Add range with their numbers).`
                     )
                   ) {
                     run(() => deletePlotGroup(group.id), "Category deleted.");
@@ -342,7 +411,7 @@ export function PlotLayoutEditor({
       {group && (
         <div className="space-y-3 rounded-xl border border-limestone-300 bg-white p-5 shadow-card">
           <h3 className="text-base text-ink">
-            Plots in “{group.name}” <span className="text-sm text-ink-soft">({groupItems.length})</span>
+            Plots in “{groupFullName(group)}” <span className="text-sm text-ink-soft">({groupItems.length})</span>
           </h3>
           <InventoryManager
             key={group.id}

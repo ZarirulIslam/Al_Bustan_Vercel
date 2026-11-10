@@ -55,7 +55,7 @@ export default async function AboutPage() {
         />
         <Container className="relative py-14 md:py-20">
           <p className="text-sm text-limestone-200/80">{settings.heroEyebrow}</p>
-          <h1 className="mt-3 max-w-2xl text-4xl text-white md:text-5xl">{settings.heroHeading}</h1>
+          <h1 className="mt-3 max-w-2xl text-3xl text-white sm:text-4xl md:text-5xl">{settings.heroHeading}</h1>
           <p className="mt-5 max-w-prose text-base text-limestone-100/90">{settings.heroParagraph}</p>
         </Container>
       </section>
