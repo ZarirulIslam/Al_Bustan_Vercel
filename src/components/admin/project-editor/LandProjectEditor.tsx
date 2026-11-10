@@ -245,8 +245,9 @@ export function LandProjectEditor({
       number: "09",
       label: "লোকেশন ম্যাপ",
       title: "{name} লোকেশন ম্যাপ",
-      description: "Master plan (from step 02 — Google Map when there is none) beside the address and these routes.",
-      anchor: "master-plan",
+      description:
+        "A live Google Map pinned at the project's latitude/longitude (set in step 03 — the address is searched when they're empty), beside the address and these routes. The master plan image shows in section 14.",
+      anchor: "location-map",
       count: count("route"),
       extra: items("route", "Routes & landmarks"),
     },

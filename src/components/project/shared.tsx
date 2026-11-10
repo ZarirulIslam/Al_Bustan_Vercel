@@ -116,6 +116,15 @@ export function DownloadIcon({ className }: { className?: string }) {
   );
 }
 
+// Opens the location itself in Google Maps (app on phones).
+export function mapViewUrl(project: Pick<Project, "latitude" | "longitude" | "location">) {
+  const query =
+    project.latitude !== null && project.longitude !== null
+      ? `${project.latitude},${project.longitude}`
+      : project.location;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
 export function directionsUrl(project: Pick<Project, "latitude" | "longitude" | "location">) {
   const destination =
     project.latitude !== null && project.longitude !== null

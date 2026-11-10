@@ -12,7 +12,7 @@ import { PlotBookingForm } from "@/components/project/PlotBookingForm";
 import { PlotLayoutTabs } from "@/components/project/PlotLayoutTabs";
 import { blockLabel, groupByBlock, plotTabHash } from "@/lib/plotLayout";
 import { Reveal } from "@/components/project/Reveal";
-import { ArrowIcon, DownloadIcon, IconChip, IconTileGrid, directionsUrl } from "@/components/project/shared";
+import { ArrowIcon, DownloadIcon, IconChip, IconTileGrid, directionsUrl, mapViewUrl } from "@/components/project/shared";
 import { isEmptyRichHtml } from "@/lib/richText/shared";
 import type { ProjectSectionItemsBySection } from "@/lib/data/projectSectionItems";
 import type { PlotGroup, Project, PublicPlot } from "@/lib/types";
@@ -467,29 +467,30 @@ export function LandProjectView({
         </section>
       )}
 
-      {/* ── 09 লোকেশন ম্যাপ ─────────────────────────────────────── */}
-      <section id="master-plan" className="scroll-mt-24 py-20 md:py-28">
+      {/* ── 09 লোকেশন ম্যাপ — a live Google Map (zoom, drag,
+          satellite), pinned at the project's coordinates. The master
+          plan image lives in the booking section (14). ──────────── */}
+      <section id="location-map" className="scroll-mt-24 py-20 md:py-28">
         <div className="container-content grid grid-cols-1 items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
-          <Reveal className="rounded-[2rem] bg-white p-4 shadow-card-hover">
-            {project.masterPlanUrl ? (
-              <a
-                href={project.masterPlanUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group relative block aspect-[4/3.4] overflow-hidden rounded-3xl bg-limestone-100"
-                aria-label="মাস্টার প্ল্যান বড় করে দেখুন"
-              >
-                <Image
-                  src={project.masterPlanUrl}
-                  alt={`${name} — মাস্টার প্ল্যান`}
-                  fill
-                  sizes="(min-width: 1024px) 50vw, 100vw"
-                  className="object-contain p-3 transition-transform duration-500 group-hover:scale-[1.03]"
-                />
-              </a>
-            ) : (
-              <Map latitude={project.latitude} longitude={project.longitude} label={name} address={project.location} />
-            )}
+          <Reveal className="rounded-[2rem] bg-white p-3 shadow-card-hover sm:p-4">
+            <Map
+              latitude={project.latitude}
+              longitude={project.longitude}
+              label={name}
+              address={project.location}
+              zoom={14}
+              className="aspect-[4/5] rounded-3xl sm:aspect-[4/3.4]"
+            />
+            <a
+              href={mapViewUrl(project)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 flex items-center justify-center gap-2 rounded-2xl py-2 text-sm font-semibold text-garden-700 transition-colors hover:bg-garden-50"
+            >
+              <ContentIcon icon="pin" className="h-4 w-4" />
+              Google Maps-এ বড় করে দেখুন
+              <span aria-hidden>↗</span>
+            </a>
           </Reveal>
 
           <div>
@@ -606,10 +607,11 @@ export function LandProjectView({
             <p className="mt-4 text-ink-soft">সম্পূর্ণ তথ্যের জন্য প্রজেক্ট ব্রোশিওরটি ডাউনলোড করুন।</p>
             {project.masterPlanUrl && (
               <a
+                id="master-plan"
                 href={project.masterPlanUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative mt-6 block aspect-[16/10] overflow-hidden rounded-2xl border border-limestone-300 bg-white"
+                className="group relative mt-6 block aspect-[16/10] scroll-mt-28 overflow-hidden rounded-2xl border border-limestone-300 bg-white"
                 aria-label="মাস্টার প্ল্যান বড় করে দেখুন"
               >
                 <Image
