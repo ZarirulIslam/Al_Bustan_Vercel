@@ -19,6 +19,7 @@ type IconName =
   | "blog"
   | "gallery"
   | "testimonials"
+  | "videos"
   | "team"
   | "about"
   | "faqs"
@@ -56,6 +57,7 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
       { label: "Blog", href: "/admin/blog", icon: "blog" },
       { label: "Gallery", href: "/admin/gallery", icon: "gallery" },
       { label: "Testimonials", href: "/admin/testimonials", icon: "testimonials" },
+      { label: "Video Library", href: "/admin/videos", icon: "videos" },
       { label: "Team", href: "/admin/team", icon: "team" },
       { label: "FAQs", href: "/admin/faqs", icon: "faqs" },
     ],
@@ -112,6 +114,13 @@ function NavIcon({ name }: { name: IconName }) {
           <path d="M3 11.5 12 4l9 7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M5.5 10v9a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-9" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
           <path d="M9.5 20v-6h5v6" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+        </svg>
+      );
+    case "videos":
+      return (
+        <svg {...common}>
+          <rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" strokeWidth="1.6" />
+          <path d="m10 9.2 4.8 2.8-4.8 2.8V9.2Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
         </svg>
       );
     case "hero":

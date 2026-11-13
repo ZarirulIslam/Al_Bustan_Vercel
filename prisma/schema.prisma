@@ -185,6 +185,7 @@ model Project {
   gallery      ProjectImage[]  @relation("GalleryImages")
   inventory    InventoryItem[]
   plotGroups   PlotGroup[]
+  videoPlacements VideoPlacement[]
   paymentPlans PaymentPlan[]
   faqs         ProjectFaq[]
   testimonials Testimonial[]
@@ -686,6 +687,7 @@ model HeroSlide {
 enum HeroMode {
   image
   video
+  youtube // the one Video Library video placed on the homepage hero
 }
 
 // Background videos for the homepage hero (MP4/WebM), shown instead of
@@ -905,4 +907,67 @@ model ActivityLog {
   @@index([adminUserId])
   @@index([adminEmail])
   @@index([createdAt])
+}
+
+// --- YouTube Video Library (/admin/videos) ---
+// Videos from the official channel, imported automatically (RSS feed,
+// or the YouTube Data API when YOUTUBE_API_KEY is set — see
+// src/lib/youtube/sync.ts). Only metadata is stored; videos play
+// through YouTube's embedded player. Imported videos stay unpublished
+// until an admin approves them.
+model YouTubeVideo {
+  id              String   @id @default(cuid())
+  youtubeId       String   @unique // the 11-character video id
+  title           String
+  description     String   @default("")
+  thumbnailUrl    String?
+  publishedAt     DateTime // when it went live on YouTube
+  durationSeconds Int? // only known with an API key
+  published       Boolean  @default(false) // approved for the website
+  source          String   @default("rss") // rss | api | manual
+
+  placements VideoPlacement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published])
+  @@index([publishedAt])
+}
+
+// Where on the website a video appears.
+enum VideoSection {
+  homepage_hero // at most one video
+  testimonials // "client reviews" on the homepage
+  about
+  project // needs projectId
+}
+
+// One video can have many placements (e.g. a project page and the
+// About page). A placement shows only while it is active AND its video
+// is published.
+model VideoPlacement {
+  id        String       @id @default(cuid())
+  videoId   String
+  video     YouTubeVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  section   VideoSection
+  projectId String?
+  project   Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  order     Int          @default(0)
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+
+  @@index([section, projectId])
+  @@index([videoId])
+}
+
+// Singleton: which channel to import from and how the last sync went.
+model YouTubeSync {
+  id           String    @id @default("singleton")
+  channelId    String? // UC… id
+  channelTitle String?
+  lastSyncedAt DateTime?
+  lastError    String?
+  lastImported Int       @default(0)
+  updatedAt    DateTime  @updatedAt
 }

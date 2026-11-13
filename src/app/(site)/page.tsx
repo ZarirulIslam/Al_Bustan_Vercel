@@ -7,6 +7,11 @@ import { ProjectCard } from "@/components/ui/ProjectCard";
 import { BlogCard } from "@/components/ui/BlogCard";
 import { HeroSlider } from "@/components/ui/HeroSlider";
 import { HeroVideoSlider } from "@/components/ui/HeroVideoSlider";
+import { HeroYouTube } from "@/components/ui/HeroYouTube";
+import { LiteYouTube } from "@/components/project/LiteYouTube";
+import { getPlacedVideos, youtubeWatchUrl } from "@/lib/data/videos";
+import { syncYouTubeIfStale } from "@/lib/youtube/sync";
+import { after } from "next/server";
 import { Eyebrow, EyebrowPill } from "@/components/ui/Eyebrow";
 import { ContentIcon } from "@/components/ui/ContentIcon";
 import { getFeaturedProjects, getProjectsByStatus } from "@/lib/data/projects";
@@ -91,6 +96,11 @@ export default async function HomePage() {
   const heroSlides = await getPublishedHeroSlides();
   // Video mode falls back to the image slider until a video is published.
   const heroVideos = homepageSettings.heroMode === "video" ? await getPublishedHeroVideos() : [];
+  const [heroYouTube] = homepageSettings.heroMode === "youtube" ? await getPlacedVideos("homepage_hero") : [];
+  const reviewVideos = homepageSettings.testimonialsSectionEnabled ? await getPlacedVideos("testimonials") : [];
+  // Pull new channel uploads into the Video Library after this response
+  // is sent, at most every 30 minutes (src/lib/youtube/sync.ts).
+  after(() => syncYouTubeIfStale(30 * 60 * 1000).catch(() => null));
   const testimonials = await getPublishedTestimonials();
   const teamMembers = homepageSettings.teamSectionEnabled ? await getPublishedTeamMembers() : [];
   const [developItems, valuePropItems] = await Promise.all([
@@ -104,7 +114,13 @@ export default async function HomePage() {
           the overlay text and buttons below are admin-managed too (see
           /admin/homepage), each independently toggleable. */}
       <section className="relative flex min-h-[640px] items-end overflow-hidden md:min-h-[720px]">
-        {heroVideos.length > 0 ? <HeroVideoSlider videos={heroVideos} /> : <HeroSlider images={heroSlides} />}
+        {heroYouTube ? (
+          <HeroYouTube youtubeId={heroYouTube.youtubeId} title={heroYouTube.title} />
+        ) : heroVideos.length > 0 ? (
+          <HeroVideoSlider videos={heroVideos} />
+        ) : (
+          <HeroSlider images={heroSlides} />
+        )}
         <Container className="relative z-30 py-16 md:py-24">
           {homepageSettings.heroTextEnabled && (
             <>
@@ -327,7 +343,7 @@ export default async function HomePage() {
       {/* Customer testimonials — admin-managed at /admin/testimonials; hidden if none are published.
           Cards float over the bottom edge of a full-bleed photo, bridging into the
           section below, rather than sitting in a plain card grid. */}
-      {homepageSettings.testimonialsSectionEnabled && testimonials.length > 0 && (
+      {homepageSettings.testimonialsSectionEnabled && (testimonials.length > 0 || reviewVideos.length > 0) && (
         <section className="relative">
           <div className="relative h-[320px] w-full overflow-hidden md:h-[400px]">
             <Image
@@ -354,7 +370,12 @@ export default async function HomePage() {
           </div>
 
           <Container>
-            <div className="relative z-10 -mt-20 grid grid-cols-1 gap-6 pb-16 sm:grid-cols-2 md:-mt-24 md:pb-24 lg:grid-cols-3">
+            {testimonials.length > 0 && (
+            <div
+              className={`relative z-10 -mt-20 grid grid-cols-1 gap-6 sm:grid-cols-2 md:-mt-24 lg:grid-cols-3 ${
+                reviewVideos.length > 0 ? "pb-10" : "pb-16 md:pb-24"
+              }`}
+            >
               {testimonials.map((testimonial) => (
                 <div
                   key={testimonial.id}
@@ -387,6 +408,22 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
+            )}
+
+            {/* Video reviews — placed from the Video Library (Client reviews). */}
+            {reviewVideos.length > 0 && (
+              <div className={`relative z-10 pb-16 md:pb-24 ${testimonials.length === 0 ? "-mt-20 md:-mt-24" : ""}`}>
+                {testimonials.length > 0 && <h3 className="mb-5 text-xl text-ink">Video reviews</h3>}
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {reviewVideos.map((video) => (
+                    <div key={video.youtubeId}>
+                      <LiteYouTube url={youtubeWatchUrl(video.youtubeId)} title={video.title} playLabel={`Play: ${video.title}`} />
+                      <p className="mt-3 line-clamp-2 text-sm font-medium text-ink">{video.title}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </Container>
         </section>
       )}

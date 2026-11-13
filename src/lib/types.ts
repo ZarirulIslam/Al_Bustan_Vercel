@@ -310,7 +310,7 @@ export interface FooterOffice {
 // /admin/homepage.
 export interface HomepageSettings {
   // Background of the hero: image slider or video slider (/admin/hero).
-  heroMode: "image" | "video";
+  heroMode: "image" | "video" | "youtube";
   heroTextEnabled: boolean;
   heroEyebrow: string;
   heroHeadline: string;

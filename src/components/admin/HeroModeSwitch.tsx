@@ -4,7 +4,7 @@ import { setHeroMode } from "@/app/admin/(dashboard)/hero/actions";
 import { useAdminAction } from "@/components/admin/AdminToaster";
 import { cn } from "@/lib/utils";
 
-type Mode = "image" | "video";
+type Mode = "image" | "video" | "youtube";
 
 const OPTIONS: { mode: Mode; title: string; hint: string; icon: React.ReactNode }[] = [
   {
@@ -22,11 +22,22 @@ const OPTIONS: { mode: Mode; title: string; hint: string; icon: React.ReactNode 
   {
     mode: "video",
     title: "Video slider",
-    hint: "Videos play one after another, muted, behind the hero text.",
+    hint: "Uploaded videos play one after another, muted, behind the hero text.",
     icon: (
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinejoin="round">
         <rect x="3" y="5" width="14" height="14" rx="2" />
         <path d="m17 10 4-2.5v9L17 14" />
+      </svg>
+    ),
+  },
+  {
+    mode: "youtube",
+    title: "YouTube video",
+    hint: "One video from the Video Library, played muted and looping through YouTube.",
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinejoin="round">
+        <rect x="2.5" y="5" width="19" height="14" rx="4" />
+        <path d="m10 9.2 4.8 2.8-4.8 2.8V9.2Z" />
       </svg>
     ),
   },
@@ -37,20 +48,23 @@ export function HeroModeSwitch({
   mode,
   publishedImages,
   publishedVideos,
+  youtubeHero,
 }: {
   mode: Mode;
   publishedImages: number;
   publishedVideos: number;
+  // The Video Library's hero video, if one is placed there.
+  youtubeHero: { title: string; live: boolean } | null;
 }) {
   const { run, isPending } = useAdminAction();
 
   return (
     <div className="rounded-xl border border-limestone-300 bg-white p-5 shadow-card">
       <h2 className="text-lg">What the homepage hero shows</h2>
-      <div role="radiogroup" aria-label="Homepage hero" className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div role="radiogroup" aria-label="Homepage hero" className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
         {OPTIONS.map((option) => {
           const selected = option.mode === mode;
-          const count = option.mode === "image" ? publishedImages : publishedVideos;
+
           return (
             <button
               key={option.mode}
@@ -83,8 +97,13 @@ export function HeroModeSwitch({
                 </span>
                 <span className="mt-0.5 block text-xs text-ink-soft">{option.hint}</span>
                 <span className="mt-1 block text-xs text-ink-soft">
-                  {count} published {option.mode === "image" ? "image" : "video"}
-                  {count === 1 ? "" : "s"}
+                  {option.mode === "youtube"
+                    ? youtubeHero
+                      ? `${youtubeHero.live ? "" : "(not published) "}${youtubeHero.title}`
+                      : "No video chosen yet"
+                    : `${option.mode === "image" ? publishedImages : publishedVideos} published ${option.mode === "image" ? "image" : "video"}${
+                        (option.mode === "image" ? publishedImages : publishedVideos) === 1 ? "" : "s"
+                      }`}
                 </span>
               </span>
             </button>
@@ -94,6 +113,24 @@ export function HeroModeSwitch({
       {mode === "video" && publishedVideos === 0 && (
         <p className="mt-3 rounded-lg bg-brass-50 px-3 py-2 text-xs text-brass-dark">
           No published video yet, so the homepage keeps showing the image slider. Add a video below.
+        </p>
+      )}
+      {mode === "youtube" && !youtubeHero?.live && (
+        <p className="mt-3 rounded-lg bg-brass-50 px-3 py-2 text-xs text-brass-dark">
+          No published YouTube video is set for the hero, so the homepage keeps showing the image slider. In the{" "}
+          <a href="/admin/videos" className="font-semibold underline">
+            Video Library
+          </a>
+          , publish a video and tick &quot;Homepage hero&quot;.
+        </p>
+      )}
+      {mode !== "youtube" && (
+        <p className="mt-3 text-xs text-ink-soft">
+          To use a YouTube video, pick it in the{" "}
+          <a href="/admin/videos" className="font-medium text-garden-700 underline">
+            Video Library
+          </a>{" "}
+          (Placements → Homepage hero), then choose &quot;YouTube video&quot; here.
         </p>
       )}
     </div>

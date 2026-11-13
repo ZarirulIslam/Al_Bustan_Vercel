@@ -446,7 +446,7 @@ export function VideoField({
       label="YouTube videos"
       htmlFor="videoUrls"
       error={errors?.videoUrls}
-      hint="One link per line. The first video is featured; the rest form a playlist."
+      hint="One link per line. The first video is featured; the rest form a playlist. Videos placed on this project from the Video Library show before these."
     >
       <textarea
         id="videoUrls"

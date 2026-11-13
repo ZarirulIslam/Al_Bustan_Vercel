@@ -2,20 +2,29 @@ import { AddHeroSlidesForm } from "@/components/admin/AddHeroSlidesForm";
 import { AdminHeroSlidesGrid } from "@/components/admin/AdminHeroSlidesGrid";
 import { HeroModeSwitch } from "@/components/admin/HeroModeSwitch";
 import { HeroVideosManager } from "@/components/admin/HeroVideosManager";
-import { getAllHeroSlidesAdmin, getAllHeroVideosAdmin, getHeroMode } from "@/lib/admin/hero";
+import { getAllHeroSlidesAdmin, getAllHeroVideosAdmin, getHeroMode, getHeroYouTubeVideo } from "@/lib/admin/hero";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminHeroPage() {
-  const [slides, videos, mode] = await Promise.all([getAllHeroSlidesAdmin(), getAllHeroVideosAdmin(), getHeroMode()]);
+  const [slides, videos, mode, youtubeHero] = await Promise.all([
+    getAllHeroSlidesAdmin(),
+    getAllHeroVideosAdmin(),
+    getHeroMode(),
+    getHeroYouTubeVideo(),
+  ]);
+  const youtubeLive = mode === "youtube" && Boolean(youtubeHero?.live);
   const publishedImages = slides.filter((s) => s.published).length;
   const publishedVideos = videos.filter((v) => v.published).length;
 
   // The section that's live on the homepage comes first.
   const imageSection = (
     <section key="images">
-      <SectionHeading title="Image slides" live={mode === "image" || publishedVideos === 0} />
+      <SectionHeading
+        title="Image slides"
+        live={mode === "image" || (mode === "video" && publishedVideos === 0) || (mode === "youtube" && !youtubeLive)}
+      />
       <div className="mt-4 max-w-xl">
         <AddHeroSlidesForm />
       </div>
@@ -38,14 +47,14 @@ export default async function AdminHeroPage() {
       <div className="border-b border-limestone-300 pb-6">
         <h1 className="text-3xl">Homepage Hero</h1>
         <p className="mt-1.5 text-sm text-ink-soft">
-          Choose whether the homepage hero shows an image slider or a video slider, and manage both. Only published
+          Choose whether the homepage hero shows an image slider, a video slider or a YouTube video, and manage them. Only published
           items appear on the site, in the order shown below. The hero&apos;s text and buttons are edited separately under
           &quot;Homepage&quot;.
         </p>
       </div>
 
       <div className="mt-8 max-w-3xl">
-        <HeroModeSwitch mode={mode} publishedImages={publishedImages} publishedVideos={publishedVideos} />
+        <HeroModeSwitch mode={mode} publishedImages={publishedImages} publishedVideos={publishedVideos} youtubeHero={youtubeHero} />
       </div>
 
       <div className="mt-10 space-y-12">

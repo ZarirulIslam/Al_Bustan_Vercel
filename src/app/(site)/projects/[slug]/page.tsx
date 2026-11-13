@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { getPlacedVideos, youtubeWatchUrl } from "@/lib/data/videos";
+import { youtubeId } from "@/lib/projectSections";
 import { notFound } from "next/navigation";
 import { LandProjectView } from "@/components/project/LandProjectView";
 import { ApartmentProjectView } from "@/components/project/ApartmentProjectView";
@@ -47,10 +49,28 @@ export default async function ProjectDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const project = await getProjectBySlug(slug);
-  if (!project) notFound();
+  const found = await getProjectBySlug(slug);
+  if (!found) notFound();
+  let project = found;
 
   const sections = await getPublishedSectionItemsForProject(project.id);
+
+  // Videos placed on this project from the Video Library come first,
+  // then the YouTube links typed into the project editor (no repeats).
+  const libraryVideos = await getPlacedVideos("project", project.id);
+  if (libraryVideos.length > 0) {
+    const seen = new Set(libraryVideos.map((v) => v.youtubeId));
+    project = {
+      ...project,
+      videoUrls: [
+        ...libraryVideos.map((v) => youtubeWatchUrl(v.youtubeId)),
+        ...project.videoUrls.filter((url) => {
+          const id = youtubeId(url);
+          return !id || !seen.has(id);
+        }),
+      ],
+    };
+  }
 
   if (project.category === "flat") {
     const others = (await getAllPublishedProjects()).filter((p) => p.id !== project.id);

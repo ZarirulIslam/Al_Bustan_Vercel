@@ -11,6 +11,8 @@ import { TeamSection } from "@/components/ui/TeamSection";
 import { LeadershipMessage } from "@/components/ui/LeadershipMessage";
 import { isEmptyRichHtml } from "@/lib/richText/shared";
 import { getPublishedTeamMembers } from "@/lib/data/teamMembers";
+import { getPlacedVideos, youtubeWatchUrl } from "@/lib/data/videos";
+import { VideoShowcase } from "@/components/project/VideoShowcase";
 
 export const metadata: Metadata = {
   title: "About Us",
@@ -25,13 +27,14 @@ const coreValueToneStyles = {
 };
 
 export default async function AboutPage() {
-  const [settings, whatWeDo, missionPoints, coreValues, approachSteps, teamMembers] = await Promise.all([
+  const [settings, whatWeDo, missionPoints, coreValues, approachSteps, teamMembers, videos] = await Promise.all([
     getAboutPageSettings(),
     getPublishedContentItems("about_what_we_do"),
     getPublishedContentItems("about_mission_points"),
     getPublishedContentItems("about_core_values"),
     getPublishedContentItems("about_approach_steps"),
     getPublishedTeamMembers(),
+    getPlacedVideos("about"),
   ]);
 
   return (
@@ -170,6 +173,19 @@ export default async function AboutPage() {
 
       {/* Our team — admin-managed at /admin/team; hidden if none are published */}
       {settings.teamSectionEnabled && teamMembers.length > 0 && <TeamSection members={teamMembers} />}
+
+      {/* Videos — placed from the Video Library (About Us); hidden if none */}
+      {videos.length > 0 && (
+        <Section className="bg-garden-900">
+          <Container>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brass-light">Watch</p>
+            <h2 className="mt-2 text-3xl text-white md:text-4xl">See our work in motion</h2>
+            <div className="mt-8">
+              <VideoShowcase urls={videos.map((v) => youtubeWatchUrl(v.youtubeId))} projectName="Al Bustan Communities" />
+            </div>
+          </Container>
+        </Section>
+      )}
 
       {/* Our portfolio */}
       <Section>

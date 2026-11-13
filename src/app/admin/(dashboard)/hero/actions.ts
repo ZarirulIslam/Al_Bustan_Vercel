@@ -140,9 +140,9 @@ export async function moveHeroSlide(id: string, direction: "up" | "down") {
 
 // --- Hero mode (image slider / video slider) ---
 
-export async function setHeroMode(mode: "image" | "video") {
+export async function setHeroMode(mode: "image" | "video" | "youtube") {
   await requireAdmin();
-  if (mode !== "image" && mode !== "video") return;
+  if (mode !== "image" && mode !== "video" && mode !== "youtube") return;
   await prisma.homepageSettings.upsert({
     where: { id: "singleton" },
     update: { heroMode: mode },
@@ -151,7 +151,7 @@ export async function setHeroMode(mode: "image" | "video") {
   await logActivity({
     action: "updated",
     resource: "HomepageSettings",
-    description: `Switched the homepage hero to the ${mode} slider`,
+    description: `Switched the homepage hero to ${mode === "youtube" ? "the YouTube video" : `the ${mode} slider`}`,
   });
   revalidateHeroPages();
 }
