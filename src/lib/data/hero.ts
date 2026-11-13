@@ -6,3 +6,10 @@ export async function getPublishedHeroSlides() {
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
   });
 }
+
+export async function getPublishedHeroVideos() {
+  return prisma.heroVideo.findMany({
+    where: { published: true },
+    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+  });
+}

@@ -44,6 +44,7 @@ export const defaultSiteSettings: SiteSettings = {
 // on with its default label, so the homepage looks exactly as it did
 // before this admin control existed until the admin changes anything.
 export const defaultHomepageSettings: HomepageSettings = {
+  heroMode: "image",
   heroTextEnabled: true,
   heroEyebrow: "Al Bustan Communities Limited",
   heroHeadline: "Planned places to live, grow and invest",

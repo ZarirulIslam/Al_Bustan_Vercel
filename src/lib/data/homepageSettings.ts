@@ -5,6 +5,7 @@ import type { HomepageSettings as PrismaHomepageSettings } from "@prisma/client"
 
 function mapHomepageSettings(row: PrismaHomepageSettings): HomepageSettings {
   return {
+    heroMode: row.heroMode,
     heroTextEnabled: row.heroTextEnabled,
     heroEyebrow: row.heroEyebrow,
     heroHeadline: row.heroHeadline,

@@ -682,8 +682,32 @@ model HeroSlide {
 // featured projects: the "Where our projects stand" stat tiles, and
 // per-section show/hide toggles. Managed from /admin/homepage, read
 // by src/app/(site)/page.tsx via src/lib/data/homepageSettings.ts.
+// What the homepage hero rotates through — chosen in /admin/hero.
+enum HeroMode {
+  image
+  video
+}
+
+// Background videos for the homepage hero (MP4/WebM), shown instead of
+// the image slides when HomepageSettings.heroMode is "video". Played
+// one after another, muted, under the same text/button layer.
+model HeroVideo {
+  id        String   @id @default(cuid())
+  url       String
+  posterUrl String? // still image shown while the video loads
+  order     Int      @default(0)
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([published])
+}
+
 model HomepageSettings {
   id String @id @default("singleton")
+
+  // Image slider (HeroSlide) or video slider (HeroVideo) behind the
+  // hero text. Video falls back to images when no video is published.
+  heroMode HeroMode @default(image)
 
   // Hero overlay text and the two CTA buttons. The hero background
   // images stay managed separately (HeroSlide, /admin/hero) — this is

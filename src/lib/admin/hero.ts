@@ -5,3 +5,14 @@ export async function getAllHeroSlidesAdmin() {
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
   });
 }
+
+export async function getAllHeroVideosAdmin() {
+  return prisma.heroVideo.findMany({
+    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+  });
+}
+
+export async function getHeroMode(): Promise<"image" | "video"> {
+  const row = await prisma.homepageSettings.findUnique({ where: { id: "singleton" }, select: { heroMode: true } });
+  return row?.heroMode ?? "image";
+}

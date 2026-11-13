@@ -137,3 +137,126 @@ export async function moveHeroSlide(id: string, direction: "up" | "down") {
 
   revalidateHeroPages();
 }
+
+// --- Hero mode (image slider / video slider) ---
+
+export async function setHeroMode(mode: "image" | "video") {
+  await requireAdmin();
+  if (mode !== "image" && mode !== "video") return;
+  await prisma.homepageSettings.upsert({
+    where: { id: "singleton" },
+    update: { heroMode: mode },
+    create: { id: "singleton", heroMode: mode },
+  });
+  await logActivity({
+    action: "updated",
+    resource: "HomepageSettings",
+    description: `Switched the homepage hero to the ${mode} slider`,
+  });
+  revalidateHeroPages();
+}
+
+// --- Hero videos ---
+
+function isPlausibleMediaUrl(value: string | null | undefined): value is string {
+  return !!value && isPlausibleImageUrl(value);
+}
+
+// The video (and optional poster) are uploaded client-side first, like
+// the image slides; this only records the URLs.
+export async function addHeroVideo(url: string, posterUrl: string | null) {
+  await requireAdmin();
+  if (!isPlausibleMediaUrl(url)) {
+    return { error: "Upload a video before saving — please wait for the upload to finish." };
+  }
+
+  const last = await prisma.heroVideo.findFirst({ orderBy: { order: "desc" } });
+  const video = await prisma.heroVideo.create({
+    data: {
+      url,
+      posterUrl: isPlausibleMediaUrl(posterUrl) ? posterUrl : null,
+      order: (last?.order ?? -1) + 1,
+      published: true,
+    },
+  });
+  await logActivity({
+    action: "created",
+    resource: "HeroVideo",
+    resourceId: video.id,
+    description: "Added a homepage hero video",
+  });
+  revalidateHeroPages();
+  return { success: true };
+}
+
+// Swaps the video or its cover image in place (keeps order and
+// published state). A null cover removes it.
+export async function replaceHeroVideoFile(id: string, field: "url" | "posterUrl", newUrl: string | null) {
+  await requireAdmin();
+  if (field === "url" && !isPlausibleMediaUrl(newUrl)) return;
+  if (field === "posterUrl" && newUrl !== null && !isPlausibleMediaUrl(newUrl)) return;
+
+  const existing = await prisma.heroVideo.findUnique({ where: { id } });
+  if (!existing) return;
+
+  await prisma.heroVideo.update({ where: { id }, data: field === "url" ? { url: newUrl! } : { posterUrl: newUrl } });
+  await logActivity({
+    action: "updated",
+    resource: "HeroVideo",
+    resourceId: id,
+    description:
+      field === "url"
+        ? "Replaced a homepage hero video"
+        : newUrl
+          ? "Changed a hero video's cover image"
+          : "Removed a hero video's cover image",
+  });
+  revalidateHeroPages();
+
+  const old = existing[field];
+  if (old && old !== newUrl) await deleteImage(old);
+}
+
+export async function deleteHeroVideo(id: string) {
+  await requireAdmin();
+  const video = await prisma.heroVideo.delete({ where: { id } }).catch(() => null);
+  if (video) {
+    await deleteImage(video.url);
+    if (video.posterUrl) await deleteImage(video.posterUrl);
+    await logActivity({
+      action: "deleted",
+      resource: "HeroVideo",
+      resourceId: id,
+      description: "Deleted a homepage hero video",
+    });
+  }
+  revalidateHeroPages();
+}
+
+export async function toggleHeroVideoPublished(id: string, published: boolean) {
+  await requireAdmin();
+  await prisma.heroVideo.update({ where: { id }, data: { published } });
+  await logActivity({
+    action: published ? "published" : "unpublished",
+    resource: "HeroVideo",
+    resourceId: id,
+    description: `${published ? "Published" : "Unpublished"} a homepage hero video`,
+  });
+  revalidateHeroPages();
+}
+
+export async function moveHeroVideo(id: string, direction: "up" | "down") {
+  await requireAdmin();
+  const videos = await prisma.heroVideo.findMany({ orderBy: [{ order: "asc" }, { createdAt: "asc" }] });
+  const index = videos.findIndex((v) => v.id === id);
+  const swapIndex = direction === "up" ? index - 1 : index + 1;
+  if (index === -1 || swapIndex < 0 || swapIndex >= videos.length) return;
+
+  // Re-number all, so videos sharing an order value still swap.
+  const reordered = [...videos];
+  [reordered[index], reordered[swapIndex]] = [reordered[swapIndex], reordered[index]];
+  await prisma.$transaction(
+    reordered.map((v, i) => prisma.heroVideo.update({ where: { id: v.id }, data: { order: i } }))
+  );
+  revalidateHeroPages();
+}

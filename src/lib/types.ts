@@ -309,6 +309,8 @@ export interface FooterOffice {
 // featured projects — see src/lib/data/homepageSettings.ts and
 // /admin/homepage.
 export interface HomepageSettings {
+  // Background of the hero: image slider or video slider (/admin/hero).
+  heroMode: "image" | "video";
   heroTextEnabled: boolean;
   heroEyebrow: string;
   heroHeadline: string;

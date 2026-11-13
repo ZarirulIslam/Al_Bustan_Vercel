@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/Button";
 import { ProjectCard } from "@/components/ui/ProjectCard";
 import { BlogCard } from "@/components/ui/BlogCard";
 import { HeroSlider } from "@/components/ui/HeroSlider";
+import { HeroVideoSlider } from "@/components/ui/HeroVideoSlider";
 import { Eyebrow, EyebrowPill } from "@/components/ui/Eyebrow";
 import { ContentIcon } from "@/components/ui/ContentIcon";
 import { getFeaturedProjects, getProjectsByStatus } from "@/lib/data/projects";
 import { getLatestPosts } from "@/lib/data/blog";
 import { getSiteSettings } from "@/lib/data/settings";
-import { getPublishedHeroSlides } from "@/lib/data/hero";
+import { getPublishedHeroSlides, getPublishedHeroVideos } from "@/lib/data/hero";
 import { getHomepageSettings } from "@/lib/data/homepageSettings";
 import { getPublishedTestimonials } from "@/lib/data/testimonials";
 import { getPublishedTeamMembers } from "@/lib/data/teamMembers";
@@ -88,6 +89,8 @@ export default async function HomePage() {
   const [featuredPost, ...restPosts] = latestPosts;
   const settings = await getSiteSettings();
   const heroSlides = await getPublishedHeroSlides();
+  // Video mode falls back to the image slider until a video is published.
+  const heroVideos = homepageSettings.heroMode === "video" ? await getPublishedHeroVideos() : [];
   const testimonials = await getPublishedTestimonials();
   const teamMembers = homepageSettings.teamSectionEnabled ? await getPublishedTeamMembers() : [];
   const [developItems, valuePropItems] = await Promise.all([
@@ -101,7 +104,7 @@ export default async function HomePage() {
           the overlay text and buttons below are admin-managed too (see
           /admin/homepage), each independently toggleable. */}
       <section className="relative flex min-h-[640px] items-end overflow-hidden md:min-h-[720px]">
-        <HeroSlider images={heroSlides} />
+        {heroVideos.length > 0 ? <HeroVideoSlider videos={heroVideos} /> : <HeroSlider images={heroSlides} />}
         <Container className="relative z-30 py-16 md:py-24">
           {homepageSettings.heroTextEnabled && (
             <>
