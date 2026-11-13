@@ -29,7 +29,9 @@ export function HeroYouTube({ youtubeId, title }: { youtubeId: string; title: st
 
   return (
     <>
-      <div className="absolute inset-0 z-0 overflow-hidden bg-garden-900">
+      {/* container-type: size lets the player size itself from the hero
+          box (cqw/cqh), not the browser window. */}
+      <div className="absolute inset-0 z-0 overflow-hidden bg-garden-900 [container-type:size]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={`https://i.ytimg.com/vi/${youtubeId}/maxresdefault.jpg`}
@@ -47,9 +49,9 @@ export function HeroYouTube({ youtubeId, title }: { youtubeId: string; title: st
             tabIndex={-1}
             aria-hidden="true"
             onLoad={() => setTimeout(() => setReady(true), 1200)}
-            // 16:9 box scaled to always cover the hero, with the edges
-            // (and YouTube's title bar) cropped off.
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[max(100%,56.25vw)] w-[max(100%,177.78vh)] min-h-full min-w-full -translate-x-1/2 -translate-y-1/2 scale-[1.15] border-0"
+            // Smallest 16:9 box that still covers the hero: only the
+            // overflowing edge is cropped, with no extra zoom.
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[max(100cqh,56.25cqw)] w-[max(100cqw,177.78cqh)] -translate-x-1/2 -translate-y-1/2 border-0"
           />
         )}
       </div>
