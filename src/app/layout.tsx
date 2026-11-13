@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Hind_Siliguri, Work_Sans } from "next/font/google";
+import { Anek_Bangla, Fraunces, Work_Sans } from "next/font/google";
 import "./globals.css";
 import { getSiteSettings } from "@/lib/data/settings";
 import { getBaseUrl } from "@/lib/seo";
@@ -17,18 +17,18 @@ const bodyFont = Work_Sans({
   weight: ["400", "500", "600", "700", "800"],
 });
 
-// Bengali-only fallback for the Bangla land/plot project pages. Fraunces
-// and Work Sans have no Bengali glyphs, so the browser falls through to
-// this per character, for headings and body alike (see fontFamily in
-// tailwind.config.ts). Hind Siliguri is a plain, highly legible sans —
-// its Bangla digits (১ ২ ৩…) read clearly at every size, unlike the serif
-// Bengali face used before. With only the "bengali" subset, Latin text
-// keeps the brand fonts, and the files download only on pages that
-// actually contain Bangla text.
-const bengaliFont = Hind_Siliguri({
+// Bengali-only fallback for Bangla text (land/plot project pages,
+// Bangla project names in the gallery…). Fraunces and Work Sans have no
+// Bengali glyphs, so the browser falls through to this per character,
+// for headings and body alike (see fontFamily in tailwind.config.ts).
+// Anek Bangla is a modern, open sans with clear conjuncts and Bangla
+// digits (১ ২ ৩…); it replaced Hind Siliguri, which read poorly at
+// small sizes. Variable weight, so every weight costs one file. With
+// only the "bengali" subset, Latin text keeps the brand fonts, and the
+// file downloads only on pages that actually contain Bangla text.
+const bengaliFont = Anek_Bangla({
   subsets: ["bengali"],
   variable: "--font-bn",
-  weight: ["400", "500", "600", "700"],
   preload: false,
 });
 

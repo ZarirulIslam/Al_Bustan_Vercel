@@ -228,3 +228,13 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Gallery viewer: each photo fades in as you move between them. */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
