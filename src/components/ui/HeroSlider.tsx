@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+import { FramedImage } from "@/components/ui/FramedImage";
+import type { ImageFit, ImageFocus } from "@/lib/imageDisplay";
 
 export interface HeroSlideImage {
   id: string;
   url: string;
   alt: string;
+  focus?: ImageFocus;
+  fit?: ImageFit;
 }
 
 const AUTO_SLIDE_MS = 6000;
@@ -54,13 +57,13 @@ export function HeroSlider({ images }: { images: HeroSlideImage[] }) {
             }`}
             aria-hidden={index !== active}
           >
-            <Image
+            <FramedImage
               src={slide.url}
               alt={slide.alt}
-              fill
+              fit={slide.fit ?? "cover"}
+              focus={slide.focus ?? "center"}
               priority={index === 0}
               sizes="100vw"
-              className="object-cover"
             />
           </div>
         ))}

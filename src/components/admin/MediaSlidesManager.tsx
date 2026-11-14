@@ -6,6 +6,7 @@ import {
   addMediaSlides,
   deleteMediaSlide,
   moveMediaSlide,
+  setMediaSlideDisplay,
   setMediaSlidePoster,
   toggleMediaSlidePublished,
   updateMediaSlideCaption,
@@ -18,6 +19,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { GalleryImageUploadField } from "@/components/admin/GalleryImageUploadField";
 import { GENERIC_ERROR, useAdminAction, useAdminToast } from "@/components/admin/AdminToaster";
 import { cn } from "@/lib/utils";
+import { FramedImage } from "@/components/ui/FramedImage";
+import { ImageDisplayControls, RecommendedSize } from "@/components/admin/ImageDisplayControls";
+import { RECOMMENDED_SIZES, focusClass, type ImageFit, type ImageFocus } from "@/lib/imageDisplay";
 
 const inputClass =
   "w-full rounded border border-limestone-300 bg-white px-3.5 py-2.5 text-sm text-ink outline-none focus:border-garden-500";
@@ -167,6 +171,8 @@ function AddSlideForm({
         </div>
       </div>
 
+      {kind !== "youtube" && <RecommendedSize {...RECOMMENDED_SIZES.mediaSlider} />}
+
       {kind === "image" && (
         <GalleryImageUploadField
           fieldName="imageUrls"
@@ -311,6 +317,13 @@ function SlideCard({
   const posterInput = useRef<HTMLInputElement>(null);
   const busy = isPending || uploading;
   const captionChanged = caption.trim() !== slide.caption;
+  // Shown immediately in the preview; saved in the background.
+  const [display, setDisplay] = useState<{ focus: ImageFocus; fit: ImageFit }>({ focus: slide.focus, fit: slide.fit });
+
+  function changeDisplay(next: { focus: ImageFocus; fit: ImageFit }) {
+    setDisplay(next);
+    run(() => setMediaSlideDisplay(slide.id, next), "Framing saved.");
+  }
 
   async function changePoster(file: File | undefined) {
     if (!file) return;
@@ -330,8 +343,7 @@ function SlideCard({
     <div className="overflow-hidden rounded-xl border border-limestone-300 bg-white shadow-card">
       <div className="relative aspect-video bg-black">
         {slide.kind === "image" && slide.url && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={slide.url} alt="" className="h-full w-full object-cover" />
+          <FramedImage src={slide.url} alt="" fit={display.fit} focus={display.focus} sizes="400px" />
         )}
         {slide.kind === "video" && slide.url && (
           <video
@@ -342,7 +354,7 @@ function SlideCard({
             playsInline
             preload="metadata"
             controls
-            className="h-full w-full object-cover"
+            className={`h-full w-full ${display.fit === "contain" ? "object-contain" : `object-cover ${focusClass(display.focus)}`}`}
           />
         )}
         {slide.kind === "youtube" && slide.youtubeId && (
@@ -418,6 +430,10 @@ function SlideCard({
             Save
           </button>
         </div>
+
+        {slide.kind !== "youtube" && (
+          <ImageDisplayControls focus={display.focus} fit={display.fit} disabled={busy} onChange={changeDisplay} />
+        )}
 
         <div className="flex gap-2">
           <button type="button" disabled={busy || index === 0} onClick={() => run(() => moveMediaSlide(slide.id, "up"))} className={smallButton}>

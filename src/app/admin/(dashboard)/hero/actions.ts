@@ -5,6 +5,7 @@ import { requireSectionAccess } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { deleteImage } from "@/lib/storage";
 import { logActivity } from "@/lib/activityLog";
+import { isImageFit, isImageFocus, type ImageFit, type ImageFocus } from "@/lib/imageDisplay";
 
 // Also enforces this admin's access to the section (see
 // src/lib/admin/permissions.ts), not just that they're signed in.
@@ -86,6 +87,20 @@ export async function replaceHeroSlide(id: string, newUrl: string) {
   revalidateHeroPages();
 
   if (existing.url !== newUrl) await deleteImage(existing.url);
+}
+
+// Focus point / "show whole image" for one slide.
+export async function setHeroSlideDisplay(id: string, display: { focus: ImageFocus; fit: ImageFit }) {
+  await requireAdmin();
+  if (!isImageFocus(display?.focus) || !isImageFit(display?.fit)) return;
+  await prisma.heroSlide.update({ where: { id }, data: { focus: display.focus, fit: display.fit } });
+  await logActivity({
+    action: "updated",
+    resource: "HeroSlide",
+    resourceId: id,
+    description: "Changed how a homepage hero slide is framed",
+  });
+  revalidateHeroPages();
 }
 
 export async function deleteHeroSlide(id: string) {

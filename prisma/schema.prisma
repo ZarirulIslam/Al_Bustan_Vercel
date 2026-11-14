@@ -667,10 +667,28 @@ model GalleryImage {
 // only these images are admin-managed. `order` controls slide
 // sequence and is edited via the admin move-up/move-down actions
 // (see src/app/admin/(dashboard)/hero/actions.ts).
+// How a slide image sits in its frame (homepage hero, media sliders).
+// focus = the part kept visible when the frame crops the image;
+// fit = contain shows the whole image on a blurred backdrop instead.
+enum ImageFocus {
+  center
+  top
+  bottom
+  left
+  right
+}
+
+enum ImageFit {
+  cover
+  contain
+}
+
 model HeroSlide {
   id        String   @id @default(cuid())
   url       String
   alt       String
+  focus     ImageFocus @default(center)
+  fit       ImageFit   @default(cover)
   order     Int      @default(0)
   published Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -993,6 +1011,8 @@ model MediaSlide {
   posterUrl String? // optional cover for an uploaded video
   youtubeId String? // youtube kind only
   caption   String               @default("")
+  focus     ImageFocus           @default(center) // image / video kinds
+  fit       ImageFit             @default(cover)
   order     Int                  @default(0)
   published Boolean              @default(true)
   createdAt DateTime             @default(now())

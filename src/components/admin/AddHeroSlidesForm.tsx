@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { GalleryImageUploadField } from "@/components/admin/GalleryImageUploadField";
 import { addHeroSlides } from "@/app/admin/(dashboard)/hero/actions";
 import { useActionFeedback } from "@/components/admin/AdminToaster";
+import { RecommendedSize } from "@/components/admin/ImageDisplayControls";
+import { RECOMMENDED_SIZES } from "@/lib/imageDisplay";
 
 function SubmitButton({ disabledExtra }: { disabledExtra: boolean }) {
   const { pending } = useFormStatus();
@@ -41,6 +43,8 @@ export function AddHeroSlidesForm() {
           {state.error}
         </p>
       )}
+
+      <RecommendedSize {...RECOMMENDED_SIZES.hero} />
 
       <GalleryImageUploadField
         key={fieldKey}

@@ -10,6 +10,8 @@ export interface PublicMediaSlide {
   posterUrl: string | null;
   youtubeId: string | null;
   caption: string;
+  focus: "center" | "top" | "bottom" | "left" | "right";
+  fit: "cover" | "contain";
 }
 
 export async function getPublishedMediaSlides(placement: MediaSliderPlacement): Promise<PublicMediaSlide[]> {
@@ -19,7 +21,7 @@ export async function getPublishedMediaSlides(placement: MediaSliderPlacement): 
     .findMany({
       where: { placement, published: true },
       orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-      select: { id: true, kind: true, url: true, posterUrl: true, youtubeId: true, caption: true },
+      select: { id: true, kind: true, url: true, posterUrl: true, youtubeId: true, caption: true, focus: true, fit: true },
     })
     .catch((error) => {
       console.error("[mediaSlides] could not load slides:", error);

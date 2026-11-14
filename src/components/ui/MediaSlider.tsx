@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { PublicMediaSlide } from "@/lib/data/mediaSlides";
+import { FramedImage } from "@/components/ui/FramedImage";
+import { focusClass } from "@/lib/imageDisplay";
 
 const IMAGE_MS = 6000; // how long an image (or an unplayed YouTube cover) stays up
 
@@ -106,13 +108,13 @@ export function MediaSlider({ slides, label }: { slides: PublicMediaSlide[]; lab
               }`}
             >
               {slide.kind === "image" && slide.url && (
-                <Image
+                <FramedImage
                   src={slide.url}
                   alt={slide.caption || label}
-                  fill
+                  fit={slide.fit}
+                  focus={slide.focus}
                   sizes="(min-width: 1280px) 1200px, 100vw"
                   priority={index === 0}
-                  className="object-cover"
                 />
               )}
 
@@ -132,7 +134,9 @@ export function MediaSlider({ slides, label }: { slides: PublicMediaSlide[]; lab
                   onEnded={() => {
                     if (count > 1 && !hovered) goTo(index + 1);
                   }}
-                  className="absolute inset-0 h-full w-full bg-black object-cover"
+                  className={`absolute inset-0 h-full w-full bg-black ${
+                    slide.fit === "contain" ? "object-contain" : `object-cover ${focusClass(slide.focus)}`
+                  }`}
                 />
               )}
 

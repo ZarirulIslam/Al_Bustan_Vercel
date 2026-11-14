@@ -1,12 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Image from "next/image";
+import { FramedImage } from "@/components/ui/FramedImage";
+import { ImageDisplayControls } from "@/components/admin/ImageDisplayControls";
+import type { ImageFit, ImageFocus } from "@/lib/imageDisplay";
 import type { HeroSlide } from "@prisma/client";
 import {
   deleteHeroSlide,
   moveHeroSlide,
   replaceHeroSlide,
+  setHeroSlideDisplay,
   toggleHeroSlidePublished,
 } from "@/app/admin/(dashboard)/hero/actions";
 import { uploadImageClientSide, ClientUploadError } from "@/lib/uploadClient";
@@ -29,6 +32,13 @@ function HeroSlideCard({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const busy = isPending || replacing;
+  // Shown immediately in the previews; saved in the background.
+  const [display, setDisplay] = useState<{ focus: ImageFocus; fit: ImageFit }>({ focus: slide.focus, fit: slide.fit });
+
+  function changeDisplay(next: { focus: ImageFocus; fit: ImageFit }) {
+    setDisplay(next);
+    run(() => setHeroSlideDisplay(slide.id, next), "Framing saved.");
+  }
 
   async function handleReplace(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -49,19 +59,19 @@ function HeroSlideCard({
 
   return (
     <div className="overflow-hidden rounded-xl border border-limestone-300 bg-white shadow-card transition-shadow duration-300 ease-estate hover:shadow-card-hover">
-      <div className="relative aspect-video">
-        <Image
-          src={slide.url}
-          alt={slide.alt}
-          fill
-          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-          className="object-cover"
-        />
-        <span className="absolute left-2 top-2 rounded-full bg-ink/70 px-2 py-0.5 text-xs font-medium text-white">
+      {/* The hero's real shapes: wide on computers, nearly square on phones. */}
+      <div className="relative flex items-end gap-1.5 bg-ink p-2">
+        <PreviewFrame label="Computer" aspect="aspect-[12/5]" grow="flex-[240]">
+          <FramedImage src={slide.url} alt={slide.alt} fit={display.fit} focus={display.focus} sizes="300px" />
+        </PreviewFrame>
+        <PreviewFrame label="Phone" aspect="aspect-[39/46]" grow="flex-[85]">
+          <FramedImage src={slide.url} alt="" fit={display.fit} focus={display.focus} sizes="120px" />
+        </PreviewFrame>
+        <span className="absolute left-3 top-3 z-10 rounded-full bg-ink/70 px-2 py-0.5 text-xs font-medium text-white">
           {index + 1}
         </span>
         {replacing && (
-          <div className="absolute inset-0 flex items-center justify-center bg-ink/50">
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-ink/50">
             <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
           </div>
         )}
@@ -98,6 +108,10 @@ function HeroSlideCard({
           >
             Delete
           </Button>
+        </div>
+
+        <div className="mt-2">
+          <ImageDisplayControls focus={display.focus} fit={display.fit} disabled={busy} onChange={changeDisplay} />
         </div>
 
         <div className="mt-2 flex items-center gap-2">
@@ -140,6 +154,25 @@ function HeroSlideCard({
   );
 }
 
+function PreviewFrame({
+  label,
+  aspect,
+  grow,
+  children,
+}: {
+  label: string;
+  aspect: string;
+  grow: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`min-w-0 ${grow}`}>
+      <div className={`relative overflow-hidden rounded bg-garden-900 ${aspect}`}>{children}</div>
+      <p className="mt-1 text-center text-[10px] uppercase tracking-wider text-white/60">{label}</p>
+    </div>
+  );
+}
+
 export function AdminHeroSlidesGrid({ slides }: { slides: HeroSlide[] }) {
   if (slides.length === 0) {
     return (
@@ -151,7 +184,7 @@ export function AdminHeroSlidesGrid({ slides }: { slides: HeroSlide[] }) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {slides.map((slide, index) => (
         <HeroSlideCard key={slide.id} slide={slide} index={index} total={slides.length} />
       ))}

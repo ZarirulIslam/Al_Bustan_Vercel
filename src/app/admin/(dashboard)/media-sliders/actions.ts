@@ -8,6 +8,7 @@ import { deleteImage } from "@/lib/storage";
 import { logActivity } from "@/lib/activityLog";
 import { youtubeId as parseYouTubeId } from "@/lib/projectSections";
 import { MEDIA_SLIDER_PLACEMENTS, isMediaSliderPlacement } from "@/lib/admin/mediaSlides";
+import { isImageFit, isImageFocus, type ImageFit, type ImageFocus } from "@/lib/imageDisplay";
 
 const MAX_CAPTION = 200;
 
@@ -107,6 +108,20 @@ export async function updateMediaSlideCaption(id: string, rawCaption: string) {
     resource: "MediaSlide",
     resourceId: id,
     description: `Edited a caption in the ${placementLabel(slide.placement)} media slider`,
+  });
+  revalidate(slide.placement);
+}
+
+// Focus point / "show whole image" for a photo or uploaded video.
+export async function setMediaSlideDisplay(id: string, display: { focus: ImageFocus; fit: ImageFit }) {
+  await requireAdmin();
+  if (!isImageFocus(display?.focus) || !isImageFit(display?.fit)) return;
+  const slide = await prisma.mediaSlide.update({ where: { id }, data: { focus: display.focus, fit: display.fit } });
+  await logActivity({
+    action: "updated",
+    resource: "MediaSlide",
+    resourceId: id,
+    description: `Changed how a slide is framed in the ${placementLabel(slide.placement)} media slider`,
   });
   revalidate(slide.placement);
 }
