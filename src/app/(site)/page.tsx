@@ -118,7 +118,7 @@ export default async function HomePage() {
       {/* Hero — background images are admin-managed (see /admin/hero);
           the overlay text and buttons below are admin-managed too (see
           /admin/homepage), each independently toggleable. */}
-      <section className="relative flex min-h-[640px] items-end overflow-hidden md:min-h-[720px]">
+      <section className="relative flex min-h-[460px] items-end overflow-hidden sm:min-h-[500px] lg:min-h-[560px]">
         {heroYouTube ? (
           <HeroYouTube youtubeId={heroYouTube.youtubeId} title={heroYouTube.title} />
         ) : heroVideos.length > 0 ? (
@@ -126,20 +126,22 @@ export default async function HomePage() {
         ) : (
           <HeroSlider images={heroSlides} />
         )}
-        <Container className="relative z-30 py-16 md:py-24">
+        <Container className="relative z-30 py-10 md:py-14">
           {homepageSettings.heroTextEnabled && (
             <>
-              <p className="text-sm text-limestone-200/80">{homepageSettings.heroEyebrow}</p>
-              <h1 className="mt-4 max-w-2xl text-3xl text-white sm:text-4xl md:text-6xl">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-limestone-200/85 sm:text-sm">
+                {homepageSettings.heroEyebrow}
+              </p>
+              <h1 className="mt-3 max-w-2xl text-[1.75rem] leading-[1.15] text-white sm:text-4xl lg:text-5xl">
                 {homepageSettings.heroHeadline}
               </h1>
-              <p className="mt-5 max-w-lg text-base text-limestone-100/90 md:text-lg">
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-limestone-100/90 sm:text-base md:text-lg">
                 {homepageSettings.heroDescription}
               </p>
             </>
           )}
           {(homepageSettings.heroPrimaryButtonEnabled || homepageSettings.heroSecondaryButtonEnabled) && (
-            <div className={`flex flex-wrap gap-4 ${homepageSettings.heroTextEnabled ? "mt-8" : ""}`}>
+            <div className={`flex flex-wrap gap-3 ${homepageSettings.heroTextEnabled ? "mt-6" : ""}`}>
               {homepageSettings.heroPrimaryButtonEnabled && (
                 <Button href={homepageSettings.heroPrimaryButtonUrl} variant="accent" size="lg">
                   {homepageSettings.heroPrimaryButtonLabel}
@@ -159,7 +161,7 @@ export default async function HomePage() {
               Ongoing/Completed/Upcoming serves the same "get moving
               fast" purpose. */}
           {statusTiles.length > 0 && (
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap gap-2.5">
               {statusTiles.map((tile) => (
                 <Link
                   key={tile.href}
