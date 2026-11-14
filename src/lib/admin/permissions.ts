@@ -20,6 +20,7 @@ export const ADMIN_SECTIONS = [
   { key: "gallery", label: "Gallery", group: "Content", path: "/admin/gallery" },
   { key: "testimonials", label: "Testimonials", group: "Content", path: "/admin/testimonials" },
   { key: "videos", label: "Video Library", group: "Content", path: "/admin/videos" },
+  { key: "mediaSliders", label: "Media Sliders", group: "Content", path: "/admin/media-sliders" },
   { key: "team", label: "Team", group: "Content", path: "/admin/team" },
   { key: "faqs", label: "FAQs", group: "Content", path: "/admin/faqs" },
   { key: "inquiries", label: "Leads & Inquiries", group: "Sales", path: "/admin/inquiries" },

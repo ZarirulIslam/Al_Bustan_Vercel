@@ -8,6 +8,8 @@ import { RichText } from "@/components/ui/RichText";
 import { Eyebrow, EyebrowPill } from "@/components/ui/Eyebrow";
 import { getSiteSettings } from "@/lib/data/settings";
 import { getPublishedSiteFaqs } from "@/lib/data/siteFaqs";
+import { getPublishedMediaSlides } from "@/lib/data/mediaSlides";
+import { MediaSlider } from "@/components/ui/MediaSlider";
 
 export const metadata: Metadata = {
   title: "Contact Us",
@@ -24,7 +26,11 @@ function ContactIcon({ d }: { d: string }) {
 }
 
 export default async function ContactPage() {
-  const [settings, faqs] = await Promise.all([getSiteSettings(), getPublishedSiteFaqs()]);
+  const [settings, faqs, mediaSlides] = await Promise.all([
+    getSiteSettings(),
+    getPublishedSiteFaqs(),
+    getPublishedMediaSlides("contact"),
+  ]);
   // Always-current, since it's just a live read of the same address
   // shown above — an admin-editable FAQ answer would risk going stale
   // if the office ever moves.
@@ -120,6 +126,22 @@ export default async function ContactPage() {
           </div>
         </Container>
       </Section>
+
+      {/* Media slider — images and videos from /admin/media-sliders;
+          hidden while nothing is published. */}
+      {mediaSlides.length > 0 && (
+        <Section className="pt-0 md:pt-0">
+          <Container>
+            <div className="max-w-2xl">
+              <Eyebrow>See Us Before You Visit</Eyebrow>
+              <h2 className="mt-2 text-3xl md:text-4xl">Our Office &amp; Projects</h2>
+            </div>
+            <div className="mt-10">
+              <MediaSlider slides={mediaSlides} label="Photos and videos of our office and projects" />
+            </div>
+          </Container>
+        </Section>
+      )}
 
       {/* FAQ */}
       <Section className="bg-garden-900">

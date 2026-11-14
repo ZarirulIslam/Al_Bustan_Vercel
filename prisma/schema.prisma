@@ -971,3 +971,31 @@ model YouTubeSync {
   lastImported Int       @default(0)
   updatedAt    DateTime  @updatedAt
 }
+
+// Combined image + video sliders placed on the website, managed in
+// /admin/media-sliders. Each placement is its own ordered list.
+enum MediaSliderPlacement {
+  homepage // section right after the homepage hero
+  contact // Contact Us page
+}
+
+enum MediaSlideKind {
+  image
+  video // uploaded MP4/WebM file
+  youtube
+}
+
+model MediaSlide {
+  id        String               @id @default(cuid())
+  placement MediaSliderPlacement
+  kind      MediaSlideKind
+  url       String? // image or video file (image / video kinds)
+  posterUrl String? // optional cover for an uploaded video
+  youtubeId String? // youtube kind only
+  caption   String               @default("")
+  order     Int                  @default(0)
+  published Boolean              @default(true)
+  createdAt DateTime             @default(now())
+
+  @@index([placement, published])
+}

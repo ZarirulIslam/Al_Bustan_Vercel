@@ -20,6 +20,7 @@ type IconName =
   | "gallery"
   | "testimonials"
   | "videos"
+  | "mediaSliders"
   | "team"
   | "about"
   | "faqs"
@@ -58,6 +59,7 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
       { label: "Gallery", href: "/admin/gallery", icon: "gallery" },
       { label: "Testimonials", href: "/admin/testimonials", icon: "testimonials" },
       { label: "Video Library", href: "/admin/videos", icon: "videos" },
+      { label: "Media Sliders", href: "/admin/media-sliders", icon: "mediaSliders" },
       { label: "Team", href: "/admin/team", icon: "team" },
       { label: "FAQs", href: "/admin/faqs", icon: "faqs" },
     ],
@@ -121,6 +123,14 @@ function NavIcon({ name }: { name: IconName }) {
         <svg {...common}>
           <rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" strokeWidth="1.6" />
           <path d="m10 9.2 4.8 2.8-4.8 2.8V9.2Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+        </svg>
+      );
+    case "mediaSliders":
+      return (
+        <svg {...common}>
+          <rect x="5.5" y="5" width="13" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+          <path d="M2.5 8v8M21.5 8v8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <path d="m10.5 9.5 4 2.5-4 2.5v-5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
         </svg>
       );
     case "hero":

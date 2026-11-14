@@ -24,6 +24,8 @@ import { getPublishedTeamMembers } from "@/lib/data/teamMembers";
 import { TeamSection } from "@/components/ui/TeamSection";
 import { getPublishedContentItems } from "@/lib/data/contentItems";
 import { RichText } from "@/components/ui/RichText";
+import { MediaSlider } from "@/components/ui/MediaSlider";
+import { getPublishedMediaSlides } from "@/lib/data/mediaSlides";
 
 export const revalidate = 0;
 
@@ -107,6 +109,9 @@ export default async function HomePage() {
     getPublishedContentItems("homepage_develop"),
     getPublishedContentItems("homepage_value_prop"),
   ]);
+  // Image + video slider right after the hero (/admin/media-sliders);
+  // the section hides itself while nothing is published.
+  const mediaSlides = await getPublishedMediaSlides("homepage");
 
   return (
     <>
@@ -171,6 +176,21 @@ export default async function HomePage() {
           )}
         </Container>
       </section>
+
+      {/* Media slider — images and videos from /admin/media-sliders */}
+      {mediaSlides.length > 0 && (
+        <Section>
+          <Container>
+            <div className="max-w-2xl">
+              <Eyebrow>In Pictures &amp; Video</Eyebrow>
+              <h2 className="mt-2 text-3xl md:text-4xl">Take a Closer Look</h2>
+            </div>
+            <div className="mt-10">
+              <MediaSlider slides={mediaSlides} label="Photos and videos of Al Bustan Communities" />
+            </div>
+          </Container>
+        </Section>
+      )}
 
       {/* Featured listings — admin-curated at /admin/homepage; hidden if none are featured/published */}
       {homepageSettings.featuredProjectsSectionEnabled && featuredProjects.length > 0 && (
